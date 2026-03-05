@@ -6064,6 +6064,10 @@ export default function App() {
     setBgLibrary(prev => prev.filter(item => item.id !== id));
   };
 
+  const handleUpdateClient = useCallback((updatedClient: Client) => {
+    setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+  }, []);
+
   if (isAuthLoading || (user && isDataLoading)) return <div className="h-screen bg-zinc-950 flex items-center justify-center text-zinc-500"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!user) return <LoginScreen />;
 
@@ -6173,7 +6177,7 @@ export default function App() {
                     assetOverrides={assetOverrides}
                     setAssetOverrides={setAssetOverrides}
                     onBack={() => setRoute({ path: '/', params: {} })} 
-                    onUpdateClient={u => setClients(clients.map(c => c.id === u.id ? u : c))} 
+                    onUpdateClient={handleUpdateClient} 
                     onNavigate={(tabId) => {
                         setRoute({ path: '/', params: {} });
                         setView(tabId);
@@ -6206,11 +6210,11 @@ export default function App() {
             ) : view === 'models' ? (
                 <ModelManager models={models} onUpdateModels={setModels} />
             ) : view === 'trades' ? (
-                <TradeManager clients={clients} onUpdateClient={(u) => setClients(prev => prev.map(c => c.id === u.id ? u : c))} fetchFinnhub={fetchFinnhub} />
+                <TradeManager clients={clients} onUpdateClient={handleUpdateClient} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
                 <InsightsDashboard clients={clients} />
             ) : (
-                <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={(u) => setClients(prev => prev.map(c => c.id === u.id ? u : c))} />
+                <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={handleUpdateClient} />
             )}
         </div>
     </div>
