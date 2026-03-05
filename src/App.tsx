@@ -1073,6 +1073,35 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
     const [isDraggingBg, setIsDraggingBg] = useState(false);
     const [pendingBg, setPendingBg] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === "text/csv") {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const content = evt.target.result as string;
+                const imported = parseMassImportCSV(content);
+                if (imported.length > 0) {
+                    onImportClients(imported);
+                    setSaveText("Import Successful!");
+                    setTimeout(() => setSaveText("Save Settings"), 3000);
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
 
     const updateThemeSettings = async (updates) => {
         if (updates.mode) { setThemeMode(updates.mode); localStorage.setItem('theme_mode', updates.mode); }
@@ -1476,14 +1505,27 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                                 <Button variant="primary" onClick={handleSave} className="rounded-xl py-2 px-6 text-xs">{saveText === "Saved!" || saveText === "Import Successful!" ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />} {saveText}</Button>
                             </div>
                             <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-8">
-                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 bg-zinc-950/30 hover:border-zinc-700 rounded-3xl p-10 transition-all">
-                                    <Database className="h-10 w-10 text-blue-500 mb-4" />
-                                    <p className="text-base font-black text-white tracking-tight">Mass Import Clients</p>
-                                    <p className="text-xs text-zinc-500 mt-1 mb-6 font-medium">Upload a CSV to instantly build your client roster.</p>
-                                    <label className="inline-flex items-center gap-2 bg-white text-black px-8 py-3 text-xs font-black uppercase tracking-widest rounded-xl cursor-pointer hover:bg-zinc-200 transition-all shadow-xl active:scale-95">
-                                        <Upload className="h-4 w-4" /> Browse CSV
-                                        <input type="file" accept=".csv" className="hidden" onChange={handleMassImport} />
+                                <div 
+                                  onDragOver={handleDragOver}
+                                  onDragLeave={handleDragLeave}
+                                  onDrop={handleDrop}
+                                  className={`relative border-2 border-dashed rounded-3xl p-12 transition-all ${
+                                    isDragging ? 'border-blue-500 bg-blue-500/10 scale-[1.02]' : 'border-zinc-800 bg-zinc-900/30'
+                                  }`}
+                                >
+                                  <div className="flex flex-col items-center text-center">
+                                    <div className={`h-20 w-20 rounded-full flex items-center justify-center mb-6 transition-colors ${
+                                      isDragging ? 'bg-blue-500 text-white' : 'bg-zinc-800 text-zinc-500'
+                                    }`}>
+                                      <Upload className="h-10 w-10" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white tracking-tight">Mass CSV Import</h3>
+                                    <p className="text-zinc-500 max-w-xs mt-2 mb-8">Drag and drop your Fidelity Mass Export CSV here, or use the button below.</p>
+                                    <label className="cursor-pointer bg-zinc-800 hover:bg-zinc-700 text-white px-8 py-3 rounded-xl font-bold transition-all">
+                                      Browse Files
+                                      <input type="file" accept=".csv" className="hidden" onChange={handleMassImport} />
                                     </label>
+                                  </div>
                                 </div>
                             </div>
                         </div>
@@ -2900,6 +2942,12 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
   const nameInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [localCashTarget, setLocalCashTarget] = useState<string>(client.allocationTargets?.cash?.toString() || '');
+  const [isEditingAccNum, setIsEditingAccNum] = useState(false);
+  const [tempAccNum, setTempAccNum] = useState(client.accountNumber || '');
+
+  useEffect(() => {
+      setTempAccNum(client.accountNumber || '');
+  }, [client.accountNumber]);
 
   useEffect(() => {
       if (client.allocationTargets?.cash !== undefined) {
@@ -3659,15 +3707,15 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
           case 'todayGLPct': return <span className={`font-mono font-bold ${p.todayGLPct > 0 ? 'text-green-500' : p.todayGLPct < 0 ? 'text-red-500' : 'text-zinc-500'} ${compactMode ? 'text-xs' : ''}`}>{p.todayGLPct > 0 ? '+' : ''}{(p.todayGLPct * 100).toFixed(2)}%</span>;
           case 'yield': return (
              <div className="relative w-full h-full p-0 hover:bg-zinc-900 cursor-pointer border border-transparent hover:border-zinc-700 transition-colors">
-                <input type="number" className={`w-full h-full bg-transparent text-right font-mono text-zinc-500 focus:text-white focus:outline-none ${compactMode ? 'p-2 text-[10px]' : 'p-4 text-xs'}`} value={p.yield || ''} placeholder="--" onChange={(e) => {
+                <input type="number" onFocus={(e) => e.target.select()} className={`w-full h-full bg-transparent text-right font-mono text-zinc-500 focus:text-white focus:outline-none ${compactMode ? 'p-2 text-[10px]' : 'p-4 text-xs'}`} value={p.yield || ''} placeholder="--" onChange={(e) => {
                     const val = parseFloat(e.target.value) || 0;
                     setPositions(positions.map(x => x.id === p.id ? { ...x, yield: val } : x));
                 }} /><span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-zinc-600 pointer-events-none">%</span>
              </div>
           );
           case 'currentPct': return <span className={`text-zinc-300 font-bold ${compactMode ? 'text-xs' : ''}`}>{formatPercent(p.currentPct)}</span>;
-          case 'targetPct': return <div className="h-full bg-blue-600/5 hover:bg-blue-600/10"><input type="number" className={`w-full h-full bg-transparent text-right font-mono text-blue-300 font-bold focus:outline-none cursor-pointer ${compactMode ? 'p-2 text-xs' : 'p-4'}`} value={p.targetEdited ? (p.targetPct ?? '') : p.displayTargetPct?.toFixed(2) || ''} onChange={e => handleTargetPctChange(p.id, e.target.value)} placeholder="0.0" /></div>;
-          case 'actualTargetValue': return <div className="h-full bg-blue-600/5 hover:bg-blue-600/10"><input type="number" className={`w-full h-full bg-transparent text-right font-mono text-blue-300 font-bold focus:outline-none cursor-pointer ${compactMode ? 'p-2 text-xs' : 'p-4'}`} value={Math.round(totalValue * (p.targetPct/100)) || ''} onChange={e => handleTargetValueChange(p.id, e.target.value)} placeholder="0" /></div>;
+          case 'targetPct': return <div className="h-full bg-blue-600/5 hover:bg-blue-600/10"><input type="number" onFocus={(e) => e.target.select()} className={`w-full h-full bg-transparent text-right font-mono text-blue-300 font-bold focus:outline-none cursor-pointer ${compactMode ? 'p-2 text-xs' : 'p-4'}`} value={p.targetEdited ? (p.targetPct ?? '') : p.displayTargetPct?.toFixed(2) || ''} onChange={e => handleTargetPctChange(p.id, e.target.value)} placeholder="0.0" /></div>;
+          case 'actualTargetValue': return <div className="h-full bg-blue-600/5 hover:bg-blue-600/10"><input type="number" onFocus={(e) => e.target.select()} className={`w-full h-full bg-transparent text-right font-mono text-blue-300 font-bold focus:outline-none cursor-pointer ${compactMode ? 'p-2 text-xs' : 'p-4'}`} value={Math.round(totalValue * (p.targetPct/100)) || ''} onChange={e => handleTargetValueChange(p.id, e.target.value)} placeholder="0" /></div>;
           case 'tradeValue': return <span className={`font-mono font-black ${p.tradeValue > 0 ? 'text-green-500' : p.tradeValue < 0 ? 'text-red-500' : 'text-zinc-800'} ${compactMode ? 'text-xs' : ''}`}>{p.tradeValue !== 0 ? formatCurrency(p.tradeValue) : '--'}</span>;
           case 'tradeShares': return p.isCash ? <span className="font-mono text-zinc-700">--</span> : (
             <div className={`flex flex-col items-end gap-1.5 ${compactMode ? 'p-1' : 'p-3'}`}>
@@ -3730,10 +3778,32 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
                             <button onClick={handleSaveName} className="text-green-500 hover:text-green-400"><Check className="h-4 w-4" /></button>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-zinc-500">{client.name}</span>
-                            <button onClick={() => { setIsEditingName(true); setTempName(client.name); }} className="text-zinc-700 hover:text-zinc-400 opacity-0 group-hover:opacity-100"><Pencil className="h-3 w-3" /></button>
-                            <button onClick={() => setShowProfileModal(true)} className="text-zinc-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"><User className="h-4 w-4" /></button>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-black uppercase tracking-widest text-zinc-500">{client.name}</span>
+                                <button onClick={() => { setIsEditingName(true); setTempName(client.name); }} className="text-zinc-700 hover:text-zinc-400 opacity-0 group-hover:opacity-100"><Pencil className="h-3 w-3" /></button>
+                                <button onClick={() => setShowProfileModal(true)} className="text-zinc-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"><User className="h-4 w-4" /></button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {isEditingAccNum ? (
+                                    <input 
+                                        autoFocus 
+                                        onFocus={(e) => e.target.select()}
+                                        className="bg-zinc-900 border border-blue-500 text-[10px] text-white px-2 py-0.5 rounded font-mono"
+                                        value={tempAccNum}
+                                        onChange={e => setTempAccNum(e.target.value)}
+                                        onBlur={() => {
+                                            onUpdateClient({ ...client, accountNumber: tempAccNum });
+                                            setIsEditingAccNum(false);
+                                        }}
+                                        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                                    />
+                                ) : (
+                                    <p onClick={() => { setTempAccNum(client.accountNumber || ''); setIsEditingAccNum(true); }} className="text-xs font-black uppercase tracking-widest text-zinc-500 mt-1 cursor-pointer hover:text-zinc-300">
+                                        Acct: {client.accountNumber || 'N/A'}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -3982,6 +4052,7 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
                                               <input 
                                                   type="number" 
                                                   disabled={client.settings?.isTargetsLocked}
+                                                  onFocus={(e) => e.target.select()}
                                                   className="w-12 bg-transparent text-right text-base font-bold text-blue-400 font-mono focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
                                                   value={group.name === 'Cash & Cash Alternatives' ? localCashTarget : group.targetWeight} 
                                                   onChange={(e) => {
@@ -4410,7 +4481,7 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
 
     const handleUpdateData = (updatedData) => {
         const currentTimestamp = updatedData.lastUpdated || new Date().toISOString();
-        const { stagedTrades, tradeFlags, ...rest } = updatedData;
+        const { stagedTrades, tradeFlags, accountNumber, ...rest } = updatedData;
         
         let updatedClient = { 
             ...normalizedClient, 
@@ -4453,7 +4524,12 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
         } else {
             // Save account-specific data (positions, etc) back into the accounts array
             updatedClient.accounts = normalizedClient.accounts.map(acc => 
-                acc.id === activeTab ? { ...acc, ...rest, lastUpdated: currentTimestamp } : acc
+                acc.id === activeTab ? { 
+                    ...acc, 
+                    ...rest, 
+                    accountNumber: accountNumber !== undefined ? accountNumber : acc.accountNumber,
+                    lastUpdated: currentTimestamp 
+                } : acc
             );
         }
         onUpdateClient(updatedClient);
@@ -6068,6 +6144,43 @@ export default function App() {
     setClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
   }, []);
 
+  const handleImportClients = (newClients: Client[]) => {
+      setClients(prev => {
+          const merged = [...prev];
+          newClients.forEach(nc => {
+              const existingClientIdx = merged.findIndex(c => c.name === nc.name);
+              
+              if (existingClientIdx > -1) {
+                  const ec = merged[existingClientIdx];
+                  // Preserve client-level settings
+                  const updatedClient = {
+                      ...ec,
+                      lastUpdated: new Date().toISOString(),
+                      accounts: [...ec.accounts]
+                  };
+                  nc.accounts.forEach(na => {
+                      const existingAccIdx = updatedClient.accounts.findIndex(a => a.accountNumber === na.accountNumber);
+                      if (existingAccIdx > -1) {
+                          const ea = updatedClient.accounts[existingAccIdx];
+                          // Merge Positions: Keep targetPct, targetEdited, and roundingMode from existing positions
+                          const mergedPositions = na.positions.map(np => {
+                              const ep = ea.positions.find(p => p.symbol === np.symbol);
+                              return ep ? { ...np, targetPct: ep.targetPct, targetEdited: ep.targetEdited, roundingMode: ep.roundingMode } : np;
+                          });
+                          updatedClient.accounts[existingAccIdx] = { ...ea, ...na, positions: mergedPositions, lastUpdated: new Date().toISOString() };
+                      } else {
+                          updatedClient.accounts.push(na);
+                      }
+                  });
+                  merged[existingClientIdx] = updatedClient;
+              } else {
+                  merged.push(nc);
+              }
+          });
+          return merged;
+      });
+  };
+
   if (isAuthLoading || (user && isDataLoading)) return <div className="h-screen bg-zinc-950 flex items-center justify-center text-zinc-500"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   if (!user) return <LoginScreen />;
 
@@ -6196,7 +6309,7 @@ export default function App() {
                     user={user} 
                     tierSettings={tierSettings}
                     setTierSettings={setTierSettings}
-                    onImportClients={setClients}
+                    onImportClients={handleImportClients}
                 />
             ) : view === 'clients' ? (
                 <ClientList 

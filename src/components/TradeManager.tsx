@@ -323,6 +323,7 @@ const TradeManager = ({ clients, onUpdateClient, fetchFinnhub }: TradeManagerPro
                                           <input 
                                             type="number"
                                             value={trade.limitPrice || ''}
+                                            onFocus={(e) => e.target.select()}
                                             onChange={(e) => handleUpdateTrade(client, trade.id, { limitPrice: parseFloat(e.target.value) })}
                                             placeholder="0.00"
                                             className="w-24 bg-zinc-900 border border-zinc-800 rounded-lg pl-6 pr-2 py-1.5 text-sm font-mono text-white focus:outline-none focus:border-blue-500 transition-colors"
