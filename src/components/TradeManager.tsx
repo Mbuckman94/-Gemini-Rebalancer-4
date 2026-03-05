@@ -83,7 +83,11 @@ const TradeManager = ({ clients, onUpdateClient, fetchFinnhub }: TradeManagerPro
 
   const handleClearAll = (client: any) => {
     if (window.confirm(`Clear all staged trades for ${client.name}?`)) {
-      onUpdateClient({ ...client, stagedTrades: [] });
+      onUpdateClient({
+        ...client,
+        stagedTrades: [],
+        tradeFlags: {} // Also clear visual buy/sell flags in the rebalancer
+      });
     }
   };
 
