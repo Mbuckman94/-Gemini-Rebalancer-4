@@ -3318,39 +3318,55 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
             acc.push({ ...curr, currentValue: Number(curr.currentValue) || 0, quantity: Number(curr.quantity) || 0 });
         }
         return acc;
-    }, []).map(p => ({
-        ...p,
-        isCash: true,
-        currentPct: totalValue > 0 ? p.currentValue / totalValue : 0,
-        actualTargetValue: 0,
-        tradeValue: 0,
-        targetPct: 0,
-        tradeShares: 0,
-        todayGL: 0,
-        todayGLPct: 0,
-        prevClose: 1.0,
-        price: 1.0
-    }));
+    }, []).map((p: any) => {
+      const currentPct = totalValue > 0 ? p.currentValue / totalValue : 0;
+      const activeTargetPct = p.targetEdited ? ((Number(p.targetPct) || 0) / 100) : currentPct;
+      let targetValue = totalValue * activeTargetPct;
+      let tradeValue = targetValue - p.currentValue;
+      if (Math.abs(tradeValue) < 0.01) tradeValue = 0;
+
+      return {
+          ...p,
+          isCash: true,
+          currentPct,
+          actualTargetValue: targetValue,
+          tradeValue,
+          targetPct: p.targetPct, // Preserve the typed target
+          tradeShares: tradeValue, // For cash, $1 = 1 share
+          todayGL: 0,
+          todayGLPct: 0,
+          prevClose: 1.0,
+          price: 1.0,
+          displayTargetPct: activeTargetPct * 100
+      };
+    });
 
     if (cashPositions.length === 0) {
-        cashPositions.push({
-            id: 'CASH_DEFAULT',
-            symbol: 'FCASH',
-            description: 'Money Market',
-            quantity: 0,
-            price: 1.00,
-            currentValue: 0,
-            yield: 0,
-            currentPct: 0,
-            targetPct: 0,
-            actualTargetValue: 0,
-            tradeValue: 0,
-            tradeShares: 0,
-            isCash: true,
-            todayGL: 0,
-            todayGLPct: 0,
-            prevClose: 1.0
-        });
+      const defaultCash = positions.find(p => p.id === 'CASH_DEFAULT');
+      const targetEdited = defaultCash?.targetEdited || false;
+      const activeTargetPct = targetEdited ? ((Number(defaultCash?.targetPct) || 0) / 100) : 0;
+      let targetValue = totalValue * activeTargetPct;
+
+      cashPositions.push({
+          id: 'CASH_DEFAULT',
+          symbol: 'FCASH',
+          description: 'Money Market',
+          quantity: 0,
+          price: 1.00,
+          currentValue: 0,
+          yield: 0,
+          currentPct: 0,
+          targetPct: defaultCash?.targetPct || 0,
+          targetEdited: targetEdited,
+          actualTargetValue: targetValue,
+          tradeValue: targetValue,
+          tradeShares: targetValue,
+          isCash: true,
+          todayGL: 0,
+          todayGLPct: 0,
+          prevClose: 1.0,
+          displayTargetPct: activeTargetPct * 100
+      });
     }
 
     const assetClassStats = (() => {
@@ -3570,17 +3586,26 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
   };
 
   const handleTargetPctChange = (id, val) => {
-    if (val === '') {
-      setPositions(positions.map(p => p.id === id ? { ...p, targetPct: 0, targetEdited: false } : p));
-    } else {
-      setPositions(positions.map(p => p.id === id ? { ...p, targetPct: parseFloat(val) || 0, targetEdited: true } : p));
+    let nextPositions = [...positions];
+    if (id === 'CASH_DEFAULT' && !nextPositions.find(p => p.id === 'CASH_DEFAULT')) {
+        nextPositions.push({ id: 'CASH_DEFAULT', symbol: 'FCASH', description: 'Money Market', quantity: 0, price: 1.00, currentValue: 0, yield: 0, isCash: true, targetEdited: true });
     }
+    if (val === '') {
+      nextPositions = nextPositions.map(p => p.id === id ? { ...p, targetPct: 0, targetEdited: false } : p);
+    } else {
+      nextPositions = nextPositions.map(p => p.id === id ? { ...p, targetPct: parseFloat(val) || 0, targetEdited: true } : p);
+    }
+    setPositions(nextPositions);
   };
 
   const handleTargetValueChange = (id, val) => {
+    let nextPositions = [...positions];
+    if (id === 'CASH_DEFAULT' && !nextPositions.find(p => p.id === 'CASH_DEFAULT')) {
+        nextPositions.push({ id: 'CASH_DEFAULT', symbol: 'FCASH', description: 'Money Market', quantity: 0, price: 1.00, currentValue: 0, yield: 0, isCash: true, targetEdited: true });
+    }
     const num = parseFloat(val) || 0;
     const newPct = totalValue > 0 ? (num / totalValue) * 100 : 0;
-    setPositions(positions.map(p => p.id === id ? { ...p, targetPct: newPct } : p));
+    setPositions(nextPositions.map(p => p.id === id ? { ...p, targetPct: newPct, targetEdited: true } : p));
   };
 
   const setRoundingMode = (id, mode) => {
