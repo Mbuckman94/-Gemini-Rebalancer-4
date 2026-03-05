@@ -366,7 +366,14 @@ const SleekGauge = ({ value, target, label, subLabel, color }) => {
         blue: ['#0088FF', '#00AAFF'],
         cyan: ['#00FFFF', '#00FFAA']
     };
-    const [startColor, endColor] = gradients[color] || gradients.blue;
+    
+    let startColor, endColor;
+    if (color && color.startsWith('#')) {
+        startColor = color;
+        endColor = color;
+    } else {
+        [startColor, endColor] = gradients[color] || gradients.blue;
+    }
 
     return (
         <div className="flex flex-col items-center justify-center p-4">
@@ -577,10 +584,10 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
     }, [positions]);
 
     const buckets = [
-        { id: 'equity', label: 'Equities', color: 'pink' },
-        { id: 'fixedIncome', label: 'Fixed Income', color: 'purple' },
-        { id: 'coveredCall', label: 'Covered Call', color: 'blue' },
-        { id: 'cash', label: 'Cash', color: 'cyan' },
+        { id: 'equity', label: 'Equities', color: '#3b82f6' },
+        { id: 'fixedIncome', label: 'Fixed Income', color: '#f97316' },
+        { id: 'coveredCall', label: 'Covered Call', color: '#3b82f6' },
+        { id: 'cash', label: 'Cash', color: '#22c55e' },
     ];
 
     const bucketOrder = client.settings?.bucketOrder || ['equity', 'fixedIncome', 'coveredCall', 'cash'];
@@ -1063,7 +1070,7 @@ const ApiKeyManager = ({ keys, onChange, label, placeholder }) => {
     );
 };
 
-const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients }) => {
+const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
     const [finnhubKeys, setFinnhubKeys] = useState(() => { const stored = localStorage.getItem('user_finnhub_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
     const [logoDev, setLogoDev] = useState(localStorage.getItem('user_logo_dev_key') || '');
     const [tiingoKeys, setTiingoKeys] = useState(() => { const stored = localStorage.getItem('user_tiingo_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
@@ -1212,6 +1219,7 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                         { id: 'appearance', label: 'Appearance', icon: Image },
                         { id: 'apis', label: 'API Integrations', icon: Key },
                         { id: 'tiers', label: 'Client Tiers', icon: Users },
+                        { id: 'insights', label: 'Insight Thresholds', icon: Lightbulb },
                         { id: 'data', label: 'Data Management', icon: Database },
                     ].map(tab => (
                         <button 
@@ -1494,6 +1502,75 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                                     <p className="text-xs text-zinc-400 leading-relaxed">
                                         <span className="text-blue-400 font-bold">Note:</span> F-Tier applies to any client below the D-Tier threshold. Tiering is calculated based on total household AUM across all linked accounts.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'insights' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div><h2 className="text-xl font-black text-white">Insight Thresholds</h2><p className="text-sm text-zinc-500 mt-1">Configure global alerts and detection sensitivity.</p></div>
+                            <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Cash Margin Alert ($)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.cashMarginAlert} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, cashMarginAlert: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">FCASH Exposure (%)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.fcashExposure} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, fcashExposure: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Tax Loss Opportunity ($)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.taxLossOpportunity} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, taxLossOpportunity: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Concentration Risk (%)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.concentrationRisk} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, concentrationRisk: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Stale Portfolio (Days)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.stalePortfolioDays} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, stalePortfolioDays: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Bond Maturity (Days)</label>
+                                        <input 
+                                            type="number" 
+                                            value={insightThresholds.bondMaturityDays} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, bondMaturityDays: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3785,24 +3862,32 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
                                 <button onClick={() => setShowProfileModal(true)} className="text-zinc-600 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"><User className="h-4 w-4" /></button>
                             </div>
                             <div className="flex items-center gap-2">
-                                {isEditingAccNum ? (
-                                    <input 
-                                        autoFocus 
-                                        onFocus={(e) => e.target.select()}
-                                        className="bg-zinc-900 border border-blue-500 text-[10px] text-white px-2 py-0.5 rounded font-mono"
-                                        value={tempAccNum}
-                                        onChange={e => setTempAccNum(e.target.value)}
-                                        onBlur={() => {
-                                            onUpdateClient({ ...client, accountNumber: tempAccNum });
-                                            setIsEditingAccNum(false);
-                                        }}
-                                        onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
-                                    />
-                                ) : (
-                                    <p onClick={() => { setTempAccNum(client.accountNumber || ''); setIsEditingAccNum(true); }} className="text-xs font-black uppercase tracking-widest text-zinc-500 mt-1 cursor-pointer hover:text-zinc-300">
-                                        Acct: {client.accountNumber || 'N/A'}
-                                    </p>
-                                )}
+                                <div className="flex items-center gap-2 group/acc">
+                                    {isEditingAccNum ? (
+                                        <input 
+                                            autoFocus 
+                                            className="bg-zinc-900 border border-blue-500 text-[10px] text-white px-2 py-0.5 rounded font-mono focus:outline-none"
+                                            value={tempAccNum}
+                                            onChange={e => setTempAccNum(e.target.value)}
+                                            onBlur={() => {
+                                                onUpdateClient({ ...client, accountNumber: tempAccNum });
+                                                setIsEditingAccNum(false);
+                                            }}
+                                            onKeyDown={e => e.key === 'Enter' && e.currentTarget.blur()}
+                                            onFocus={(e) => e.target.select()}
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <p 
+                                                onClick={() => { setTempAccNum(client.accountNumber || ''); setIsEditingAccNum(true); }} 
+                                                className="text-xs font-black uppercase tracking-widest text-zinc-500 mt-1 cursor-pointer hover:text-zinc-300 transition-colors"
+                                            >
+                                                Acct: {client.accountNumber || client.profile?.accountNumber || 'N/A'}
+                                            </p>
+                                            <Pencil onClick={() => { setTempAccNum(client.accountNumber || ''); setIsEditingAccNum(true); }} className="h-3 w-3 text-zinc-700 cursor-pointer opacity-0 group-hover/acc:opacity-100 transition-opacity mt-1" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -4522,14 +4607,9 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
                  }));
              }
         } else {
-            // Save account-specific data (positions, etc) back into the accounts array
+            // Update specific account data including accountNumber
             updatedClient.accounts = normalizedClient.accounts.map(acc => 
-                acc.id === activeTab ? { 
-                    ...acc, 
-                    ...rest, 
-                    accountNumber: accountNumber !== undefined ? accountNumber : acc.accountNumber,
-                    lastUpdated: currentTimestamp 
-                } : acc
+                acc.id === activeTab ? { ...acc, ...rest, accountNumber: accountNumber !== undefined ? accountNumber : acc.accountNumber, lastUpdated: currentTimestamp } : acc
             );
         }
         onUpdateClient(updatedClient);
@@ -4577,7 +4657,6 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
                                        <h1 className="text-3xl font-black text-white tracking-tighter">{client.name}</h1>
                                        <button onClick={() => { setIsEditingClient(true); setTempClientName(client.name); }} className="text-zinc-600 hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"><Pencil className="h-5 w-5" /></button>
                                    </div>
-                                   <p className="text-xs font-black uppercase tracking-widest text-zinc-500 mt-1">Acct: {client.profile?.accountNumber || 'N/A'}</p>
                                </div>
                            </>
                        )}
@@ -5976,6 +6055,14 @@ export default function App() {
   const [themeFlavor, setThemeFlavor] = useState(() => localStorage.getItem('theme_flavor') || 'zinc');
   const [accentColor, setAccentColor] = useState(() => localStorage.getItem('theme_accent') || 'blue');
   const [tierSettings, setTierSettings] = useState(() => JSON.parse(localStorage.getItem('tier_settings')) || { mode: 'relative', thresholds: { A: 10, B: 25, C: 50, D: 75 } });
+  const [insightThresholds, setInsightThresholds] = useState(() => JSON.parse(localStorage.getItem('insight_thresholds')) || {
+      cashMarginAlert: 5000,
+      fcashExposure: 10,
+      taxLossOpportunity: -2000,
+      concentrationRisk: 15,
+      stalePortfolioDays: 30,
+      bondMaturityDays: 60
+  });
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -6024,6 +6111,7 @@ export default function App() {
             if (data.settings.themeFlavor) { setThemeFlavor(data.settings.themeFlavor); localStorage.setItem('theme_flavor', data.settings.themeFlavor); }
             if (data.settings.themeAccent) { setAccentColor(data.settings.themeAccent); localStorage.setItem('theme_accent', data.settings.themeAccent); }
             if (data.tierSettings) { setTierSettings(data.tierSettings); localStorage.setItem('tier_settings', JSON.stringify(data.tierSettings)); }
+            if (data.insightThresholds) { setInsightThresholds(data.insightThresholds); localStorage.setItem('insight_thresholds', JSON.stringify(data.insightThresholds)); }
           }
         } else {
            // Auto-Migration
@@ -6042,18 +6130,21 @@ export default function App() {
            };
            
            const initialTierSettings = JSON.parse(localStorage.getItem('tier_settings') || '{"mode":"relative","thresholds":{"A":10,"B":25,"C":50,"D":75}}');
+           const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"cashMarginAlert":5000,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60}');
            
            setClients(localClients);
            setModels(localModels);
            setAssetOverrides(localOverrides);
            setTierSettings(initialTierSettings);
+           setInsightThresholds(initialInsightThresholds);
            
            await setDoc(docRef, JSON.parse(JSON.stringify({
                clients: localClients,
                models: localModels,
                assetOverrides: localOverrides,
                settings: initialSettings,
-               tierSettings: initialTierSettings
+               tierSettings: initialTierSettings,
+               insightThresholds: initialInsightThresholds
            })));
         }
       } catch (error) {
@@ -6075,6 +6166,7 @@ export default function App() {
     localStorage.setItem('rebalance_models', JSON.stringify(models));
     localStorage.setItem('rebalance_asset_overrides', JSON.stringify(assetOverrides));
     localStorage.setItem('tier_settings', JSON.stringify(tierSettings));
+    localStorage.setItem('insight_thresholds', JSON.stringify(insightThresholds));
 
     const timeoutId = setTimeout(async () => {
       try {
@@ -6083,7 +6175,8 @@ export default function App() {
           models,
           assetOverrides,
           bgLibrary,
-          tierSettings
+          tierSettings,
+          insightThresholds
         })), { merge: true });
       } catch (e) {
         console.error("Error saving to cloud", e);
@@ -6310,6 +6403,8 @@ export default function App() {
                     tierSettings={tierSettings}
                     setTierSettings={setTierSettings}
                     onImportClients={handleImportClients}
+                    insightThresholds={insightThresholds}
+                    setInsightThresholds={setInsightThresholds}
                 />
             ) : view === 'clients' ? (
                 <ClientList 
@@ -6325,7 +6420,7 @@ export default function App() {
             ) : view === 'trades' ? (
                 <TradeManager clients={clients} onUpdateClient={handleUpdateClient} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
-                <InsightsDashboard clients={clients} />
+                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} />
             ) : (
                 <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={handleUpdateClient} />
             )}

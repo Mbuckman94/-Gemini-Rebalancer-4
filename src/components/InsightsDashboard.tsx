@@ -198,7 +198,17 @@ const Card = ({ title, icon: Icon, children, className = "" }: any) => (
   </div>
 );
 
-const InsightsDashboard = ({ clients }: { clients: any[] }) => {
+const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], insightThresholds?: any }) => {
+  const safeThresholds = {
+      cashMarginAlert: 5000,
+      fcashExposure: 10,
+      taxLossOpportunity: -2000,
+      concentrationRisk: 15,
+      stalePortfolioDays: 30,
+      bondMaturityDays: 60,
+      ...insightThresholds
+  };
+
   const [indexQuotes, setIndexQuotes] = useState<any>({
     SPY: { price: 0, change: 0, pct: 0 },
     QQQ: { price: 0, change: 0, pct: 0 },
@@ -445,22 +455,21 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
           if (isCash) cashVal += val;
         });
 
-        const cashPct = totalVal > 0 ? (cashVal / totalVal) * 100 : 0;
-
-        if (cashPct > 10 || cashVal < 0) {
+        // Use absolute dollar threshold for alerts
+        if (cashVal < safeThresholds.cashMarginAlert) {
           alerts.push({
             clientId: client.id,
             clientName: client.name,
             accountName: acc.name,
-            cashPct,
+            cashPct: totalVal > 0 ? (cashVal / totalVal) * 100 : 0,
             cashVal,
-            type: cashVal < 0 ? 'margin' : 'drag'
+            type: cashVal < 0 ? 'margin' : 'low_cash'
           });
         }
       });
     });
     return alerts;
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 1.5: FCASH HOLDINGS ---
   const fcashHolders = useMemo(() => {
@@ -481,16 +490,19 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
           });
 
           if (fcashValue > 0) {
-              holders.push({
-                  clientId: client.id,
-                  clientName: client.name,
-                  fcashValue,
-                  fcashPct: totalAUM > 0 ? (fcashValue / totalAUM) * 100 : 0
-              });
+              const fcashPct = totalAUM > 0 ? (fcashValue / totalAUM) * 100 : 0;
+              if (fcashPct > safeThresholds.fcashExposure) {
+                  holders.push({
+                      clientId: client.id,
+                      clientName: client.name,
+                      fcashValue,
+                      fcashPct
+                  });
+              }
           }
       });
       return holders.sort((a, b) => b.fcashValue - a.fcashValue);
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 2: TAX LOSS HARVESTING ---
   const tlhOpportunities = useMemo(() => {
@@ -512,7 +524,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
                 glPct = (unrealizedGL / costBasis) * 100;
             }
 
-            if (glPct <= -10) {
+            if (unrealizedGL < safeThresholds.taxLossOpportunity) {
                 opps.push({
                     clientName: client.name,
                     symbol: p.symbol,
@@ -524,7 +536,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
       });
     });
     return opps.sort((a, b) => a.glPct - b.glPct); 
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 3: CONCENTRATION RISK ---
   const concentrationRisks = useMemo(() => {
@@ -563,7 +575,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
 
         symbolMap.forEach((val, sym) => {
             const pct = (val / clientAUM) * 100;
-            if (pct > 20) {
+            if (pct > safeThresholds.concentrationRisk) {
                 risks.push({
                     clientName: client.name,
                     symbol: sym,
@@ -573,7 +585,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         });
     });
     return risks.sort((a, b) => b.pct - a.pct);
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 4: STALE BESPOKE PORTFOLIOS ---
   const stalePortfolios = useMemo(() => {
@@ -587,11 +599,17 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
                   let totalVal = 0;
                   (acc.positions || []).forEach((p: any) => totalVal += (Number(p.currentValue) || 0));
                   
-                  staleAccounts.push({
-                      name: `${client.name} (${acc.name})`,
-                      totalValue: totalVal,
-                      lastUpdated: acc.lastUpdated || client.lastUpdated
-                  });
+                  const lastUpdated = acc.lastUpdated || client.lastUpdated;
+                  const diffTime = Date.now() - new Date(lastUpdated).getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                  if (diffDays > safeThresholds.stalePortfolioDays) {
+                      staleAccounts.push({
+                          name: `${client.name} (${acc.name})`,
+                          totalValue: totalVal,
+                          lastUpdated: lastUpdated
+                      });
+                  }
               }
           });
       });
@@ -603,7 +621,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
               return dateA - dateB;
           })
           .slice(0, 20);
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 5: UPCOMING BOND MATURITIES ---
   const bondMaturities = useMemo(() => {
@@ -624,7 +642,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
                           const diffTime = maturityDate.getTime() - today.getTime();
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                           
-                          if (diffDays >= 0 && diffDays <= 90) {
+                          if (diffDays >= 0 && diffDays < safeThresholds.bondMaturityDays) {
                               maturing.push({
                                   clientName: client.name,
                                   symbol: p.symbol,
@@ -639,7 +657,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
           });
       });
       return maturing.sort((a, b) => a.days - b.days);
-  }, [clients]);
+  }, [clients, safeThresholds]);
 
   // --- WIDGET 6: REAL-TIME INDEX QUOTES ---
   useEffect(() => {
@@ -720,7 +738,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* WIDGET 1: CASH & MARGIN */}
-        <Card title="Cash & Margin Alerts" icon={Wallet} className="h-96">
+        <Card title={`Cash & Margin Alerts (<${formatCurrency(safeThresholds.cashMarginAlert)})`} icon={Wallet} className="h-96">
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {cashAlerts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -745,7 +763,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         </Card>
 
         {/* WIDGET 1.5: FCASH EXPOSURE */}
-        <Card title="FCASH Exposure" icon={Banknote} className="h-96 flex flex-col">
+        <Card title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} icon={Banknote} className="h-96 flex flex-col">
             <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                 {fcashHolders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -784,7 +802,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         </Card>
 
         {/* WIDGET 2: TAX LOSS HARVESTING */}
-        <Card title="Tax-Loss Opportunities" icon={TrendingDown} className="h-96">
+        <Card title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} icon={TrendingDown} className="h-96">
              <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {tlhOpportunities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -811,7 +829,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         </Card>
 
         {/* WIDGET 3: CONCENTRATION RISK */}
-        <Card title="Concentration Risk (>20%)" icon={PieChart} className="h-96">
+        <Card title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} icon={PieChart} className="h-96">
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {concentrationRisks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -839,7 +857,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         </Card>
 
         {/* WIDGET 4: STALE BESPOKE PORTFOLIOS */}
-        <Card title="Stale Bespoke Portfolios" icon={Clock} className="h-96">
+        <Card title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} icon={Clock} className="h-96">
             <div className="overflow-y-auto custom-scrollbar h-full pr-2">
                 <table className="w-full text-left text-xs">
                     <thead className="text-[9px] font-black uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-900/90 backdrop-blur-sm z-10">
@@ -868,7 +886,7 @@ const InsightsDashboard = ({ clients }: { clients: any[] }) => {
         </Card>
 
         {/* WIDGET 5: UPCOMING BOND MATURITIES */}
-        <Card title="Bond Maturities (<90 Days)" icon={Calendar} className="h-96">
+        <Card title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} icon={Calendar} className="h-96">
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {bondMaturities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
