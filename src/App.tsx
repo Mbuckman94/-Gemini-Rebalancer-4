@@ -375,12 +375,14 @@ const SleekGauge = ({ value, target, label, subLabel, color }) => {
         [startColor, endColor] = gradients[color] || gradients.blue;
     }
 
+    const safeLabel = label.replace(/\s+/g, '-');
+
     return (
         <div className="flex flex-col items-center justify-center p-4">
             <div className="relative w-[200px] h-[120px] flex justify-center">
                 <svg width="200" height="150" viewBox="0 0 200 150" className="overflow-visible">
                     <defs>
-                        <linearGradient id={`grad-${label}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                        <linearGradient id={`grad-${safeLabel}`} x1="0%" y1="0%" x2="100%" y2="0%">
                             <stop offset="0%" stopColor={startColor} />
                             <stop offset="100%" stopColor={endColor} />
                         </linearGradient>
@@ -404,7 +406,7 @@ const SleekGauge = ({ value, target, label, subLabel, color }) => {
                     <path 
                         d={describeArc(100, 100, radius, startAngle, progressAngle)} 
                         fill="none" 
-                        stroke={`url(#grad-${label})`} 
+                        stroke={`url(#grad-${safeLabel})`} 
                         strokeWidth={stroke} 
                         strokeLinecap="round"
                         className="gauge-progress"
@@ -705,6 +707,7 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                                         type="number" 
                                         step="0.01"
                                         disabled={isTargetsLocked}
+                                        onFocus={(e) => e.target.select()}
                                         className="w-full bg-transparent p-2 text-center text-white font-mono font-bold text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                         value={targets[bucket.id]} 
                                         onChange={e => handleTargetChange(bucket.id, e.target.value)} 
@@ -719,6 +722,7 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                                                 type="number" 
                                                 step="0.01"
                                                 disabled={isTargetsLocked}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full bg-zinc-900 border border-zinc-800 text-[10px] p-1 rounded text-center text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 value={targets.equity_stocks || 0}
                                                 onChange={e => {
@@ -739,6 +743,7 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                                                 type="number" 
                                                 step="0.01"
                                                 disabled={isTargetsLocked}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full bg-zinc-900 border border-zinc-800 text-[10px] p-1 rounded text-center text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 value={targets.equity_funds || 0}
                                                 onChange={e => {
@@ -763,6 +768,7 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                                                 type="number" 
                                                 step="0.01"
                                                 disabled={isTargetsLocked}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full bg-zinc-900 border border-zinc-800 text-[10px] p-1 rounded text-center text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 value={targets.fi_bonds || 0}
                                                 onChange={e => {
@@ -783,6 +789,7 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                                                 type="number" 
                                                 step="0.01"
                                                 disabled={isTargetsLocked}
+                                                onFocus={(e) => e.target.select()}
                                                 className="w-full bg-zinc-900 border border-zinc-800 text-[10px] p-1 rounded text-center text-white focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 value={targets.fi_funds || 0}
                                                 onChange={e => {
@@ -1071,6 +1078,26 @@ const ApiKeyManager = ({ keys, onChange, label, placeholder }) => {
 };
 
 const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
+    const [userProfile, setUserProfile] = useState(() => {
+        const saved = localStorage.getItem('user_profile_settings');
+        return saved ? JSON.parse(saved) : {
+            fullName: '',
+            firmName: '',
+            email: '',
+            password: '',
+            crdNumber: '',
+            complianceEmail: '',
+            phone: '',
+            twoFactorEnabled: false
+        };
+    });
+    const [initialUserProfile, setInitialUserProfile] = useState(userProfile);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+
     const [finnhubKeys, setFinnhubKeys] = useState(() => { const stored = localStorage.getItem('user_finnhub_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
     const [logoDev, setLogoDev] = useState(localStorage.getItem('user_logo_dev_key') || '');
     const [tiingoKeys, setTiingoKeys] = useState(() => { const stored = localStorage.getItem('user_tiingo_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
@@ -1126,6 +1153,8 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
     };
 
     const handleSave = async () => {
+        localStorage.setItem('user_profile_settings', JSON.stringify(userProfile));
+        setInitialUserProfile(userProfile);
         if (finnhubKeys.length > 0) localStorage.setItem('user_finnhub_key', finnhubKeys.join(',')); else localStorage.removeItem('user_finnhub_key');
         if (logoDev) localStorage.setItem('user_logo_dev_key', logoDev); else localStorage.removeItem('user_logo_dev_key');
         if (tiingoKeys.length > 0) localStorage.setItem('user_tiingo_key', tiingoKeys.join(',')); else localStorage.removeItem('user_tiingo_key');
@@ -1208,8 +1237,61 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
         reader.readAsText(file);
     };
 
+    const handlePasswordUpdate = () => {
+        if (newPassword !== confirmPassword) {
+            setPasswordError("Passwords do not match");
+            return;
+        }
+        if (newPassword.length < 8) {
+            setPasswordError("Password must be at least 8 characters");
+            return;
+        }
+        setUserProfile({ ...userProfile, password: newPassword });
+        setIsPasswordModalOpen(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordError('');
+    };
+
+    const hasProfileChanges = JSON.stringify(userProfile) !== JSON.stringify(initialUserProfile);
+
     return (
         <div className="max-w-6xl mx-auto p-8 md:p-12 space-y-8 pb-24 relative z-10">
+            {isPasswordModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-black text-white">Update Password</h3>
+                            <button onClick={() => setIsPasswordModalOpen(false)} className="text-zinc-500 hover:text-white"><X className="h-5 w-5" /></button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">New Password</label>
+                                <input 
+                                    type="password" 
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-white text-sm mt-1 focus:border-blue-500 focus:outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Confirm Password</label>
+                                <input 
+                                    type="password" 
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-white text-sm mt-1 focus:border-blue-500 focus:outline-none"
+                                />
+                            </div>
+                            {passwordError && <p className="text-red-500 text-xs font-bold">{passwordError}</p>}
+                        </div>
+                        <div className="pt-2 flex gap-3">
+                            <button onClick={() => setIsPasswordModalOpen(false)} className="flex-1 py-2 rounded-xl border border-zinc-800 text-zinc-400 text-xs font-bold hover:bg-zinc-800">Cancel</button>
+                            <button onClick={handlePasswordUpdate} className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-500">Update Password</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div><h1 className="text-4xl font-black text-white tracking-tighter">Settings</h1><p className="text-zinc-500 text-base mt-2 font-medium">Manage your workspace preferences and integrations.</p></div>
 
             <div className="flex flex-col md:flex-row gap-8 lg:gap-12 mt-8">
@@ -1217,6 +1299,7 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                 <div className="w-full md:w-64 shrink-0 space-y-1">
                     {[
                         { id: 'appearance', label: 'Appearance', icon: Image },
+                        { id: 'profile', label: 'Profile & Security', icon: ShieldCheck },
                         { id: 'apis', label: 'API Integrations', icon: Key },
                         { id: 'tiers', label: 'Client Tiers', icon: Users },
                         { id: 'insights', label: 'Insight Thresholds', icon: Lightbulb },
@@ -1419,6 +1502,148 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'profile' && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <div className="flex items-center justify-between">
+                                <div><h2 className="text-xl font-black text-white">Profile & Security</h2><p className="text-sm text-zinc-500 mt-1">Manage your professional identity and account access.</p></div>
+                                <Button 
+                                    variant="primary" 
+                                    onClick={handleSave} 
+                                    disabled={!hasProfileChanges && saveText === "Save Settings"}
+                                    className={`rounded-xl py-2 px-6 text-xs transition-all ${!hasProfileChanges && saveText === "Save Settings" ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+                                >
+                                    {saveText === "Saved!" ? <Check className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />} {saveText}
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-6">
+                                {/* Professional Identity Card */}
+                                <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-6">
+                                    <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
+                                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Briefcase className="h-5 w-5" /></div>
+                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Professional Identity</h3>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Full Name</label>
+                                            <input 
+                                                type="text" 
+                                                value={userProfile.fullName}
+                                                onChange={(e) => setUserProfile({...userProfile, fullName: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="e.g. Jonathan Smith"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Firm Name</label>
+                                            <input 
+                                                type="text" 
+                                                value={userProfile.firmName}
+                                                onChange={(e) => setUserProfile({...userProfile, firmName: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="e.g. Smith Capital Management"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">CRD / NPN Number</label>
+                                            <input 
+                                                type="text" 
+                                                value={userProfile.crdNumber}
+                                                onChange={(e) => setUserProfile({...userProfile, crdNumber: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="e.g. 1234567"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Phone Number</label>
+                                            <input 
+                                                type="tel" 
+                                                value={userProfile.phone}
+                                                onChange={(e) => setUserProfile({...userProfile, phone: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="e.g. +1 (555) 000-0000"
+                                            />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Compliance Email (CC for Archiving)</label>
+                                            <input 
+                                                type="email" 
+                                                value={userProfile.complianceEmail}
+                                                onChange={(e) => setUserProfile({...userProfile, complianceEmail: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="compliance@firm.com"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Account Security Card */}
+                                <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-6">
+                                    <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
+                                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500"><ShieldCheck className="h-5 w-5" /></div>
+                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Account Security</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Login Email</label>
+                                            <input 
+                                                type="email" 
+                                                value={userProfile.email}
+                                                onChange={(e) => setUserProfile({...userProfile, email: e.target.value})}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                                placeholder="name@firm.com"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Password</label>
+                                            <div className="relative">
+                                                <input 
+                                                    type={showPassword ? "text" : "password"}
+                                                    value={userProfile.password}
+                                                    readOnly
+                                                    className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors pr-10 cursor-not-allowed opacity-70"
+                                                    placeholder="••••••••••••"
+                                                />
+                                                <button 
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                                                >
+                                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                </button>
+                                            </div>
+                                            <button 
+                                                onClick={() => setIsPasswordModalOpen(true)}
+                                                className="text-[10px] font-bold text-blue-500 hover:text-blue-400 uppercase tracking-wider mt-1"
+                                            >
+                                                Update Password
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="md:col-span-2 pt-2 border-t border-zinc-800/50 flex items-center justify-between">
+                                            <div>
+                                                <div className="text-sm font-bold text-white">Two-Factor Authentication</div>
+                                                <div className="text-xs text-zinc-500 mt-0.5">Secure your account with 2FA</div>
+                                            </div>
+                                            <button 
+                                                onClick={() => setUserProfile({...userProfile, twoFactorEnabled: !userProfile.twoFactorEnabled})}
+                                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${userProfile.twoFactorEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                                            >
+                                                <span className={`inline-block w-4 h-4 transform rounded-full bg-white transition duration-200 ease-in-out mt-1 ml-1 ${userProfile.twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

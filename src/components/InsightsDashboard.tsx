@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X } from 'lucide-react';
+import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight } from 'lucide-react';
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
 
@@ -188,15 +188,103 @@ const formatCurrency = (val: number) => {
 
 const formatPercent = (val: number) => (Number(val)).toFixed(2) + '%';
 
-const Card = ({ title, icon: Icon, children, className = "" }: any) => (
-  <div className={`bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col ${className}`}>
-    <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center gap-3">
-      {Icon && <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400"><Icon className="h-4 w-4" /></div>}
-      <span className="text-xs font-black uppercase tracking-widest text-zinc-400">{title}</span>
+const Card = ({ title, icon: Icon, children, className = "", onClick }: any) => (
+  <div 
+    onClick={onClick}
+    className={`bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden flex flex-col ${onClick ? 'cursor-pointer hover:border-zinc-700 transition-colors group' : ''} ${className}`}
+  >
+    <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        {Icon && <div className="p-2 bg-zinc-800 rounded-lg text-zinc-400"><Icon className="h-4 w-4" /></div>}
+        <span className="text-xs font-black uppercase tracking-widest text-zinc-400">{title}</span>
+      </div>
+      {onClick && <ArrowUpRight className="h-4 w-4 text-zinc-600 group-hover:text-white transition-colors" />}
     </div>
     <div className="p-6 flex-1">{children}</div>
   </div>
 );
+
+const InsightDetailModal = ({ insight, onClose, sort, onSort }: any) => {
+    const [search, setSearch] = useState('');
+
+    const filteredData = useMemo(() => {
+        if (!search) return insight.data;
+        return insight.data.filter((row: any) => 
+            Object.values(row).some(val => 
+                String(val).toLowerCase().includes(search.toLowerCase())
+            )
+        );
+    }, [insight.data, search]);
+
+    const sortedData = useMemo(() => {
+        if (!sort.key) return filteredData;
+        return [...filteredData].sort((a, b) => {
+            const valA = a[sort.key];
+            const valB = b[sort.key];
+            if (valA < valB) return sort.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sort.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }, [filteredData, sort]);
+
+    return (
+        <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+                <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-white tracking-tight">{insight.title}</h2>
+                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+                
+                <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
+                    <input 
+                        type="text" 
+                        placeholder="Search..." 
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                </div>
+
+                <div className="overflow-auto custom-scrollbar flex-1 p-6">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr>
+                                {insight.columns.map((col: any) => (
+                                    <th 
+                                        key={col.key} 
+                                        onClick={() => onSort(col.key)}
+                                        className="p-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 cursor-pointer hover:text-white transition-colors border-b border-zinc-800 sticky top-0 bg-zinc-900"
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            {col.label}
+                                            {sort.key === col.key && (
+                                                sort.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                            )}
+                                        </div>
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sortedData.map((row: any, i: number) => (
+                                <tr key={i} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                                    {insight.columns.map((col: any) => (
+                                        <td key={col.key} className="p-3 text-sm text-zinc-300 font-medium">
+                                            {col.render ? col.render(row[col.key], row) : row[col.key]}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], insightThresholds?: any }) => {
   const safeThresholds = {
@@ -207,6 +295,16 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
       stalePortfolioDays: 30,
       bondMaturityDays: 60,
       ...insightThresholds
+  };
+
+  const [activeInsight, setActiveInsight] = useState<{ title: string, data: any[], columns: any[] } | null>(null);
+  const [modalSort, setModalSort] = useState({ key: '', direction: 'asc' });
+
+  const handleModalSort = (key: string) => {
+      setModalSort(prev => ({
+          key,
+          direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+      }));
   };
 
   const [indexQuotes, setIndexQuotes] = useState<any>({
@@ -528,6 +626,7 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
                 opps.push({
                     clientName: client.name,
                     symbol: p.symbol,
+                    accountName: acc.name,
                     glDollar: unrealizedGL,
                     glPct: glPct
                 });
@@ -647,6 +746,7 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
                                   clientName: client.name,
                                   symbol: p.symbol,
                                   description: p.description,
+                                  value: Number(p.currentValue) || 0,
                                   days: diffDays,
                                   date: maturityDate.toLocaleDateString()
                               });
@@ -738,7 +838,21 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* WIDGET 1: CASH & MARGIN */}
-        <Card title={`Cash & Margin Alerts (<${formatCurrency(safeThresholds.cashMarginAlert)})`} icon={Wallet} className="h-96">
+        <Card 
+            title={`Cash & Margin Alerts (<${formatCurrency(safeThresholds.cashMarginAlert)})`} 
+            icon={Wallet} 
+            className="h-96"
+            onClick={() => setActiveInsight({
+                title: 'Cash & Margin Alerts',
+                data: cashAlerts,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'accountName', label: 'Account' },
+                    { key: 'cashVal', label: 'Cash Balance', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                    { key: 'type', label: 'Type', render: (val: string) => <span className={`uppercase font-bold text-[10px] ${val === 'margin' ? 'text-red-400' : 'text-orange-400'}`}>{val === 'margin' ? 'Margin Usage' : 'Low Cash'}</span> }
+                ]
+            })}
+        >
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {cashAlerts.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -763,7 +877,20 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
         </Card>
 
         {/* WIDGET 1.5: FCASH EXPOSURE */}
-        <Card title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} icon={Banknote} className="h-96 flex flex-col">
+        <Card 
+            title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} 
+            icon={Banknote} 
+            className="h-96 flex flex-col"
+            onClick={() => setActiveInsight({
+                title: 'FCASH Exposure',
+                data: fcashHolders,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'fcashValue', label: 'FCASH Value', render: (val: number) => <span className="font-mono text-blue-400">{formatCurrency(val)}</span> },
+                    { key: 'fcashPct', label: '% of Portfolio', render: (val: number) => <span className="font-mono">{val.toFixed(2)}%</span> }
+                ]
+            })}
+        >
             <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                 {fcashHolders.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -802,7 +929,21 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
         </Card>
 
         {/* WIDGET 2: TAX LOSS HARVESTING */}
-        <Card title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} icon={TrendingDown} className="h-96">
+        <Card 
+            title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} 
+            icon={TrendingDown} 
+            className="h-96"
+            onClick={() => setActiveInsight({
+                title: 'Tax-Loss Opportunities',
+                data: tlhOpportunities,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
+                    { key: 'accountName', label: 'Account' },
+                    { key: 'glDollar', label: 'Unrealized Loss', render: (val: number) => <span className="font-mono text-red-400">{formatCurrency(val)}</span> }
+                ]
+            })}
+        >
              <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {tlhOpportunities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -829,7 +970,20 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
         </Card>
 
         {/* WIDGET 3: CONCENTRATION RISK */}
-        <Card title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} icon={PieChart} className="h-96">
+        <Card 
+            title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} 
+            icon={PieChart} 
+            className="h-96"
+            onClick={() => setActiveInsight({
+                title: 'Concentration Risk',
+                data: concentrationRisks,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
+                    { key: 'pct', label: 'Weight', render: (val: number) => <span className="font-mono text-orange-400">{val.toFixed(2)}%</span> }
+                ]
+            })}
+        >
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {concentrationRisks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -857,7 +1011,24 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
         </Card>
 
         {/* WIDGET 4: STALE BESPOKE PORTFOLIOS */}
-        <Card title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} icon={Clock} className="h-96">
+        <Card 
+            title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} 
+            icon={Clock} 
+            className="h-96"
+            onClick={() => setActiveInsight({
+                title: 'Stale Bespoke Portfolios',
+                data: stalePortfolios,
+                columns: [
+                    { key: 'name', label: 'Client (Account)' },
+                    { key: 'lastUpdated', label: 'Last Updated', render: (val: string) => val ? new Date(val).toLocaleDateString() : 'Never' },
+                    { key: 'lastUpdated', label: 'Days Stale', render: (val: string) => {
+                        if (!val) return 'N/A';
+                        const days = Math.ceil((Date.now() - new Date(val).getTime()) / (1000 * 60 * 60 * 24));
+                        return <span className="font-mono text-orange-400">{days}d</span>;
+                    }}
+                ]
+            })}
+        >
             <div className="overflow-y-auto custom-scrollbar h-full pr-2">
                 <table className="w-full text-left text-xs">
                     <thead className="text-[9px] font-black uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-900/90 backdrop-blur-sm z-10">
@@ -886,7 +1057,21 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
         </Card>
 
         {/* WIDGET 5: UPCOMING BOND MATURITIES */}
-        <Card title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} icon={Calendar} className="h-96">
+        <Card 
+            title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} 
+            icon={Calendar} 
+            className="h-96"
+            onClick={() => setActiveInsight({
+                title: 'Upcoming Bond Maturities',
+                data: bondMaturities,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'symbol', label: 'Symbol', render: (val: string, row: any) => <div className="flex flex-col"><span className="font-bold">{val}</span><span className="text-[9px] text-zinc-500 truncate max-w-[200px]">{row.description}</span></div> },
+                    { key: 'value', label: 'Value', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                    { key: 'days', label: 'Days to Maturity', render: (val: number) => <span className="font-mono text-blue-400">{val}d</span> }
+                ]
+            })}
+        >
             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
                 {bondMaturities.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-zinc-600">
@@ -1084,6 +1269,14 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
                   </div>
               </div>
           </div>
+      )}
+      {activeInsight && (
+          <InsightDetailModal 
+              insight={activeInsight} 
+              onClose={() => setActiveInsight(null)} 
+              sort={modalSort}
+              onSort={handleModalSort}
+          />
       )}
     </div>
   );
