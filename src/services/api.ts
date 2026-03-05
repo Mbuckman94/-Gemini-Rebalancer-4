@@ -56,6 +56,11 @@ export const markKeyAsDead = (key: string) => {
 let finnhubKeyIndex = 0;
 export const fetchFinnhub = async (endpoint: string) => {
     const keys = getFinnhubKeys();
+    if (!keys || keys.length === 0) {
+        console.warn("No Finnhub keys available");
+        return {};
+    }
+
     let attempts = 0;
     const maxAttempts = keys.length * 2; // Allow some retries across keys
     
@@ -68,8 +73,8 @@ export const fetchFinnhub = async (endpoint: string) => {
         
         try {
             const res = await fetch(url);
-            if (res.status === 429) {
-                // Rate limited - wait briefly then retry with next key
+            if (res.status === 429 || res.status === 403 || res.status === 401) {
+                // Rate limited or Forbidden - wait briefly then retry with next key
                 markKeyAsDead(currentKey);
                 attempts++;
                 await new Promise(r => setTimeout(r, 500 + (attempts * 500)));
@@ -83,6 +88,7 @@ export const fetchFinnhub = async (endpoint: string) => {
             await new Promise(r => setTimeout(r, 200));
         }
     }
+    return {};
 };
 
 let geminiKeyIndex = 0;

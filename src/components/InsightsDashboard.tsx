@@ -155,7 +155,7 @@ const fetchFinnhub = async (endpoint: string) => {
         
         try {
             const res = await fetch(url);
-            if (res.status === 429) {
+            if (res.status === 429 || res.status === 403 || res.status === 401) {
                 attempts++;
                 await new Promise(r => setTimeout(r, 500 + (attempts * 500)));
                 continue;

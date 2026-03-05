@@ -5,15 +5,16 @@ import {
   ArrowRight, Layers, FileSpreadsheet, Plus, Minus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { fetchTiingoIEX } from '../services/api';
+
 import Button from './Button';
 
 interface TradeManagerProps {
   clients: any[];
   onUpdateClient: (client: any) => void;
+  fetchFinnhub: (url: string) => Promise<any>;
 }
 
-const TradeManager = ({ clients, onUpdateClient }: TradeManagerProps) => {
+const TradeManager = ({ clients, onUpdateClient, fetchFinnhub }: TradeManagerProps) => {
   const [expandedClients, setExpandedClients] = useState<Record<string, boolean>>({});
   const [liveQuotes, setLiveQuotes] = useState<Record<string, any>>({});
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -26,24 +27,44 @@ const TradeManager = ({ clients, onUpdateClient }: TradeManagerProps) => {
     setExpandedClients(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const refreshPrice = async (symbol: string) => {
+    try {
+        const data = await fetchFinnhub(`quote?symbol=${symbol}`);
+        if (data && data.c) {
+            setLiveQuotes(prev => ({
+                ...prev,
+                [symbol]: {
+                    lastPrice: data.c,
+                    timestamp: new Date(),
+                    volume: prev[symbol]?.volume || 0
+                }
+            }));
+            
+            // Fetch volume for the thinly-traded warning
+            const metrics = await fetchFinnhub(`stock/metric?symbol=${symbol}&metric=all`);
+            if (metrics && metrics.metric?.avg10DayVolume) {
+                setLiveQuotes(prev => ({
+                    ...prev,
+                    [symbol]: { 
+                        ...prev[symbol], 
+                        volume: metrics.metric.avg10DayVolume * 1000000 
+                    }
+                }));
+            }
+        }
+    } catch (e) {
+        console.error("Quote refresh failed", e);
+    }
+  };
+
   const fetchQuotes = async () => {
     setIsRefreshing(true);
     const symbols = new Set<string>();
     clientsWithTrades.forEach(c => {
       c.stagedTrades.forEach((t: any) => symbols.add(t.symbol));
     });
-
-    const results: Record<string, any> = {};
-    await Promise.all(Array.from(symbols).map(async (sym) => {
-      try {
-        const data = await fetchTiingoIEX(sym);
-        if (data) results[sym] = data;
-      } catch (e) {
-        console.error(`Failed to fetch quote for ${sym}`, e);
-      }
-    }));
-
-    setLiveQuotes(prev => ({ ...prev, ...results }));
+    
+    await Promise.all(Array.from(symbols).map(sym => refreshPrice(sym)));
     setIsRefreshing(false);
   };
 
@@ -53,8 +74,10 @@ const TradeManager = ({ clients, onUpdateClient }: TradeManagerProps) => {
     }
   }, [clientsWithTrades.length]);
 
-  const handleDeleteTrade = (client: any, tradeId: string) => {
-    const updatedTrades = client.stagedTrades.filter((t: any) => t.id !== tradeId);
+  const handleDeleteTrade = (client: any, tradeId: string, symbol: string) => {
+    const updatedTrades = client.stagedTrades.filter((t: any) => 
+      (t.id && t.id !== tradeId) || (!t.id && t.symbol !== symbol)
+    );
     onUpdateClient({ ...client, stagedTrades: updatedTrades });
   };
 
@@ -246,6 +269,9 @@ const TradeManager = ({ clients, onUpdateClient }: TradeManagerProps) => {
                                   <td className="p-4">
                                     <div className="flex items-center gap-2">
                                       <span className="font-black text-white">{trade.symbol}</span>
+                                      <button onClick={(e) => { e.stopPropagation(); refreshPrice(trade.symbol); }} className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-white transition-colors">
+                                        <RefreshCw className="h-3 w-3" />
+                                      </button>
                                       {isThinlyTraded && (
                                         <div className="group relative">
                                           <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -334,7 +360,7 @@ const TradeManager = ({ clients, onUpdateClient }: TradeManagerProps) => {
                                   </td>
                                   <td className="p-4 text-right">
                                     <button 
-                                      onClick={() => handleDeleteTrade(client, trade.id)}
+                                      onClick={() => handleDeleteTrade(client, trade.id, trade.symbol)}
                                       className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-600 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover/row:opacity-100 transition-all"
                                     >
                                       <X className="h-4 w-4" />

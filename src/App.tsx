@@ -2921,9 +2921,21 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
   };
 
   const handleStageTrades = (navigateAfter = false) => {
+    const CASH_SWAP_ACCOUNT_TYPES = ['Individual', 'TOD', 'TODI', 'TODE', 'TODJ'];
     const allDerivedPositions = displayPositions.modularGroups.flatMap((g: any) => g.items);
     const newTrades = allDerivedPositions
-        .filter(p => Math.abs(p.tradeShares) > 0 || Math.abs(p.tradeValue) > 0)
+        .filter(p => {
+            const hasValue = Math.abs(p.tradeShares) > 0 || Math.abs(p.tradeValue) > 0;
+            if (!hasValue) return false;
+            const isCashTicker = CASH_TICKERS.some(t => p.symbol.toUpperCase().includes(t));
+            
+            // If it's not cash, we always want to stage the trade
+            if (!isCashTicker) return true;
+            // If it IS a cash ticker, check the FDRXX Buy exception
+            const isFdrxxBuy = p.symbol.toUpperCase() === 'FDRXX' && p.tradeValue > 0;
+            const isQualifyingAccount = CASH_SWAP_ACCOUNT_TYPES.includes(client.accountType);
+            return isFdrxxBuy && isQualifyingAccount;
+        })
         .map(p => ({
             id: p.symbol,
             symbol: p.symbol,
@@ -4398,13 +4410,23 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
 
     const handleUpdateData = (updatedData) => {
         const currentTimestamp = updatedData.lastUpdated || new Date().toISOString();
+        const { stagedTrades, tradeFlags, ...rest } = updatedData;
         
-        if (activeTab === 'overview') {
-             let updatedAccounts = normalizedClient.accounts;
+        let updatedClient = { 
+            ...normalizedClient, 
+            stagedTrades: stagedTrades !== undefined ? stagedTrades : (normalizedClient.stagedTrades || []),
+            tradeFlags: tradeFlags !== undefined ? tradeFlags : (normalizedClient.tradeFlags || {}),
+            lastUpdated: currentTimestamp 
+        };
 
-             if (updatedData.positions) {
+        if (activeTab === 'overview') {
+             // Update allocation targets and settings for household
+             updatedClient.allocationTargets = rest.allocationTargets;
+             updatedClient.settings = rest.settings;
+             
+             if (rest.positions) {
                  const updates = new Map();
-                 updatedData.positions.forEach(p => {
+                 rest.positions.forEach(p => {
                      updates.set(p.symbol, { 
                          price: p.price, 
                          yield: p.yield, 
@@ -4412,7 +4434,7 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
                      });
                  });
 
-                 updatedAccounts = updatedAccounts.map(acc => ({
+                 updatedClient.accounts = updatedClient.accounts.map(acc => ({
                      ...acc,
                      positions: (acc.positions || []).map(pos => {
                          const up = updates.get(pos.symbol);
@@ -4428,24 +4450,13 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
                      })
                  }));
              }
-
-             onUpdateClient({
-                 ...normalizedClient,
-                 accounts: updatedAccounts,
-                 allocationTargets: updatedData.allocationTargets,
-                 settings: updatedData.settings,
-                 lastUpdated: currentTimestamp
-             });
         } else {
-            const updatedAccounts = normalizedClient.accounts.map(acc => 
-                acc.id === activeTab ? { ...acc, ...updatedData, lastUpdated: currentTimestamp } : acc
+            // Save account-specific data (positions, etc) back into the accounts array
+            updatedClient.accounts = normalizedClient.accounts.map(acc => 
+                acc.id === activeTab ? { ...acc, ...rest, lastUpdated: currentTimestamp } : acc
             );
-            onUpdateClient({ 
-                ...normalizedClient, 
-                accounts: updatedAccounts,
-                lastUpdated: currentTimestamp 
-            });
         }
+        onUpdateClient(updatedClient);
     };
     
     const handleDeleteAccount = (accId) => {
@@ -4461,14 +4472,16 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
     const activeAccount = normalizedClient.accounts.find(a => a.id === activeTab);
     const portfolioData = activeTab === 'overview' 
         ? { 
-            name: client.name + ' (Household)', 
+            ...normalizedClient,
+            name: normalizedClient.name + ' (Household)', 
             positions: aggregatedPositions, 
-            id: 'overview',
-            lastUpdated: client.lastUpdated,
-            allocationTargets: client.allocationTargets,
-            settings: client.settings
+            id: 'overview'
           }
-        : activeAccount;
+        : {
+            ...activeAccount,
+            stagedTrades: normalizedClient.stagedTrades || [],
+            tradeFlags: normalizedClient.tradeFlags || {}
+        };
 
     return (
         <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
@@ -6193,7 +6206,7 @@ export default function App() {
             ) : view === 'models' ? (
                 <ModelManager models={models} onUpdateModels={setModels} />
             ) : view === 'trades' ? (
-                <TradeManager clients={clients} onUpdateClient={(u) => setClients(prev => prev.map(c => c.id === u.id ? u : c))} />
+                <TradeManager clients={clients} onUpdateClient={(u) => setClients(prev => prev.map(c => c.id === u.id ? u : c))} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
                 <InsightsDashboard clients={clients} />
             ) : (
