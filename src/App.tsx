@@ -4132,20 +4132,13 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                         <button onClick={() => handleEnrich()} disabled={isEnriching} className="h-full w-8 flex items-center justify-center hover:bg-zinc-800 text-indigo-400 hover:text-indigo-300 transition-colors border-r border-zinc-800" title="AI Scan"><Sparkles className={`h-4 w-4 ${isEnriching ? 'animate-spin text-indigo-200' : ''}`} /></button>
                         <button onClick={() => setShowSaveModal(true)} className="h-full w-8 flex items-center justify-center hover:bg-blue-900/30 text-blue-500 hover:text-blue-400 transition-colors" title="Save Changes"><Save className="h-4 w-4"/></button>
                     </div>
-                    <div className="flex items-center gap-3 mr-4">
-                        <img 
-                            src="YOUR_LOGO_URL_HERE" 
-                            alt="Firm Logo" 
-                            className="h-8 w-8 object-contain rounded-lg" 
-                        />
-                        <div className="hidden md:flex flex-col items-end animate-in fade-in duration-700">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                                {getGreeting()}
-                            </p>
-                            <p className="text-sm font-bold text-white tracking-tight">
-                                {userProfile.fullName || 'Advisor'}
-                            </p>
-                        </div>
+                    <div className="hidden md:flex flex-col items-end mr-4 animate-in fade-in duration-700">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                            {getGreeting()}
+                        </p>
+                        <p className="text-sm font-bold text-white tracking-tight">
+                            {userProfile.fullName || 'Advisor'}
+                        </p>
                     </div>
                     <button onClick={() => setShowSettingsModal(true)} className="h-8 w-8 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-2" title="Dashboard Settings">
                         <Settings className="h-4 w-4" />
@@ -6231,7 +6224,13 @@ const LoginScreen = () => {
 
       <div className="bg-zinc-900/40 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-8 w-full max-w-md shadow-2xl relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-600/30 mb-4">IA</div>
+          <div className="h-12 w-12 rounded-xl overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900 mb-4">
+            <img 
+                src="/logo.jpg" 
+                alt="Firm Logo" 
+                className="h-full w-full object-contain" 
+            />
+          </div>
           <h2 className="text-3xl font-black text-white tracking-tighter">Terminal Access</h2>
           <p className="text-zinc-500 font-medium text-sm mt-1">Authenticate to securely load your portfolios.</p>
         </div>
@@ -6580,7 +6579,13 @@ export default function App() {
                 {isSidebarExpanded ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <div className={`flex items-center gap-3 mb-8 ${isSidebarExpanded ? 'self-start' : ''}`}>
-                <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-600/30">IA</div>
+                <div className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900">
+                    <img 
+                        src="/logo.jpg" 
+                        alt="Firm Logo" 
+                        className="h-full w-full object-contain" 
+                    />
+                </div>
                 {isSidebarExpanded && (
                     <div className="flex flex-col">
                         <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{getGreeting()},</span>
