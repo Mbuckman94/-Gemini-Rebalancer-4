@@ -30,6 +30,8 @@ export interface Client {
     lastUpdated: string;
     profile?: {
         accountNumber?: string;
+        firstName?: string;
+        lastName?: string;
     };
 }
 
@@ -205,12 +207,23 @@ export const parseMassImportCSV = (text: string): Client[] => {
         const accountName = row[accountNameIdx]?.replace(/^"|"$/g, '') || accountNum;
         
         if (!clientMap.has(clientName)) {
+            const nameParts = clientName.includes(',') 
+                ? clientName.split(',').map(p => p.trim()) 
+                : clientName.split(' ').map(p => p.trim());
+            
+            const lastName = clientName.includes(',') ? nameParts[0] : (nameParts.length > 1 ? nameParts[nameParts.length - 1] : '');
+            const firstName = clientName.includes(',') ? nameParts[1] : (nameParts.length > 1 ? nameParts[0] : nameParts[0]);
+
             clientMap.set(clientName, {
                 id: generateId(),
                 name: clientName,
                 accounts: [],
                 lastUpdated: new Date().toISOString(),
-                profile: { accountNumber: accountNum }
+                profile: { 
+                    accountNumber: accountNum,
+                    firstName: firstName || '',
+                    lastName: lastName || ''
+                }
             });
         }
         

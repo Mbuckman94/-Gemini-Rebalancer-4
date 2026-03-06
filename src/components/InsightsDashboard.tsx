@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles } from 'lucide-react';
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
 
@@ -286,7 +286,7 @@ const InsightDetailModal = ({ insight, onClose, sort, onSort }: any) => {
     );
 };
 
-const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], insightThresholds?: any }) => {
+const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { clients: any[], insightThresholds?: any, onUpdateClient: (updatedClient: any) => void }) => {
   const safeThresholds = {
       cashMarginAlert: 5000,
       fcashExposure: 10,
@@ -359,6 +359,35 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
               return next;
           });
       }
+  };
+
+  const handleConvertToFdrxx = () => {
+      if (!window.confirm(`Staging FDRXX buy orders for ${fcashHolders.length} clients. Continue?`)) return;
+      
+      fcashHolders.forEach(holder => {
+          const client = clients.find(c => c.id === holder.clientId);
+          if (!client) return;
+          const newTrade = {
+              id: 'FDRXX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+              symbol: 'FDRXX',
+              action: 'Buy',
+              shares: holder.fcashValue,
+              value: holder.fcashValue,
+              type: 'Market',
+              limitPrice: null,
+              status: 'pending',
+              timestamp: Date.now()
+          };
+          const updatedClient = {
+              ...client,
+              stagedTrades: [...(client.stagedTrades || []), newTrade],
+              lastUpdated: new Date().toISOString()
+          };
+          onUpdateClient(updatedClient);
+      });
+      
+      setShowFcashModal(false);
+      alert('FDRXX trades successfully staged in the Export Trades tab.');
   };
 
   // --- EFFECT A: THE FETCHER (Runs once on mount/clients change) ---
@@ -1236,9 +1265,18 @@ const InsightsDashboard = ({ clients, insightThresholds }: { clients: any[], ins
                               <p className="text-xs text-zinc-500 font-medium">All clients with FCASH exposure</p>
                           </div>
                       </div>
-                      <button onClick={() => setShowFcashModal(false)} className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
-                          <X className="h-5 w-5" />
-                      </button>
+                      <div className="flex items-center gap-4">
+                          <button 
+                              onClick={handleConvertToFdrxx}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20"
+                          >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Convert all to FDRXX
+                          </button>
+                          <button onClick={() => setShowFcashModal(false)} className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors">
+                              <X className="h-5 w-5" />
+                          </button>
+                      </div>
                   </div>
                   <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                       <table className="w-full text-left text-sm">

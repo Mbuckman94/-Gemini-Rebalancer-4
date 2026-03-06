@@ -20,19 +20,22 @@ import { parseFidelityCSV, parseMassImportCSV } from './utils/csvParsers';
 import TradeManager from './components/TradeManager';
 import Button from './components/Button';
 
-const Tooltip = ({ children, text }: { children: React.ReactNode; text: string }) => {
+const Tooltip = ({ children, text }: { children: React.ReactNode; text: string; key?: any }) => {
   const [show, setShow] = React.useState(false);
   if (!text) return <>{children}</>;
   return (
     <div
-      className="relative flex items-center"
+      className="relative flex items-center group"
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
       {children}
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-zinc-800 text-white text-[10px] font-bold rounded shadow-lg whitespace-nowrap z-[1000]">
-          {text}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[1000] animate-in fade-in zoom-in-95 duration-100">
+          <div className="relative bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-zinc-800 shadow-2xl whitespace-nowrap">
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-900 border-l border-t border-zinc-800 rotate-45" />
+            {text}
+          </div>
         </div>
       )}
     </div>
@@ -1375,6 +1378,73 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                     </div>
                                 </div>
 
+                                {/* Custom View Master Template Section */}
+                                <div className="pt-8 border-t border-zinc-800/50">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Custom View Master Template</h3>
+                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Configure your default custom layout settings</p>
+                                        </div>
+                                        <div className="h-8 w-8 bg-zinc-800/50 rounded-lg flex items-center justify-center border border-zinc-700/50">
+                                            <Settings2 className="h-4 w-4 text-zinc-400" />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {/* Rename Input */}
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">View Name</label>
+                                            <input 
+                                                type="text"
+                                                value={globalCustomView.name}
+                                                onChange={(e) => setGlobalCustomView({ ...globalCustomView, name: e.target.value })}
+                                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-all"
+                                                placeholder="Enter view name..."
+                                            />
+                                        </div>
+
+                                        {/* Framework Toggle */}
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Framework</label>
+                                            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                                                {[
+                                                    { id: 'standard', label: 'Standard List', icon: List },
+                                                    { id: 'modular', label: 'Modular Groups', icon: LayoutGrid }
+                                                ].map(opt => (
+                                                    <button 
+                                                        key={opt.id}
+                                                        onClick={() => setGlobalCustomView({ ...globalCustomView, framework: opt.id })}
+                                                        className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${globalCustomView.framework === opt.id ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                    >
+                                                        <opt.icon className="h-3.5 w-3.5" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Density Toggle */}
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Information Density</label>
+                                            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                                                {[
+                                                    { id: false, label: 'Standard', icon: Layout },
+                                                    { id: true, label: 'Compact', icon: List }
+                                                ].map(opt => (
+                                                    <button 
+                                                        key={String(opt.id)}
+                                                        onClick={() => setGlobalCustomView({ ...globalCustomView, isCompact: opt.id })}
+                                                        className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${globalCustomView.isCompact === opt.id ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                    >
+                                                        <opt.icon className="h-3.5 w-3.5" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Drag & Drop Zone */}
                                 {themeMode === 'custom' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1512,10 +1582,10 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                     </div>
                                 )}
 
-                                {/* Custom View Builder Section */}
+                                {/* Custom View Master Template */}
                                 <div className="pt-8 border-t border-zinc-800">
                                     <div className="flex items-center justify-between mb-4">
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Custom View Builder</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Custom View Master Template</label>
                                         <Button 
                                             onClick={() => {
                                                 setGlobalCustomView(localCustomView);
@@ -1523,7 +1593,7 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                             }}
                                             className="px-4 py-1.5 text-xs rounded-lg"
                                         >
-                                            <Save className="h-3.5 w-3.5 mr-1.5" /> Save View
+                                            <Save className="h-3.5 w-3.5 mr-1.5" /> Save Current as Master
                                         </Button>
                                     </div>
                                     
@@ -1543,12 +1613,12 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                         <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
                                             <div className="flex items-center gap-3">
                                                 <LayoutList className="h-4 w-4 text-zinc-400" />
-                                                <span className="text-sm font-bold text-zinc-300">Compact Variant</span>
+                                                <span className="text-sm font-bold text-zinc-300">Default Density</span>
                                             </div>
                                             <Toggle 
-                                                value={localCustomView?.isCompact ? 'On' : 'Off'} 
-                                                onChange={(val) => setLocalCustomView({ ...localCustomView, isCompact: val === 'On' })} 
-                                                options={['On', 'Off']} 
+                                                value={localCustomView?.isCompact ? 'Compact' : 'Normal'} 
+                                                onChange={(val) => setLocalCustomView({ ...localCustomView, isCompact: val === 'Compact' })} 
+                                                options={['Normal', 'Compact']} 
                                             />
                                         </div>
 
@@ -1954,7 +2024,7 @@ const ApiUsageModal = ({ onClose }) => {
   );
 };
 
-const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'] }) => {
+const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'], globalCustomView, onUpdateGlobalCustomView }) => {
     const [activeTab, setActiveTab] = useState('columns');
     const [draggedColIdx, setDraggedColIdx] = useState(null);
     const [bucketOrder, setBucketOrder] = useState(initialBucketOrder);
@@ -2046,6 +2116,68 @@ const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBuc
                 <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                     {activeTab === 'columns' ? (
                         <>
+                            {/* Custom View Configuration */}
+                            <div className="mb-6 space-y-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Custom View Configuration</h4>
+                                </div>
+                                
+                                <div className="space-y-4 bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+                                    {/* Rename */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">View Name</label>
+                                        <input 
+                                            type="text"
+                                            value={globalCustomView?.name || ''}
+                                            onChange={(e) => onUpdateGlobalCustomView({ ...globalCustomView, name: e.target.value })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-all"
+                                            placeholder="Enter view name..."
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Framework */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Framework</label>
+                                            <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+                                                <button 
+                                                    onClick={() => onUpdateGlobalCustomView({ ...globalCustomView, framework: 'standard' })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${globalCustomView?.framework === 'standard' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                >
+                                                    List
+                                                </button>
+                                                <button 
+                                                    onClick={() => onUpdateGlobalCustomView({ ...globalCustomView, framework: 'modular' })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${globalCustomView?.framework === 'modular' ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                >
+                                                    Modular
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Density */}
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Density</label>
+                                            <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+                                                <button 
+                                                    onClick={() => onUpdateGlobalCustomView({ ...globalCustomView, isCompact: false })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${!globalCustomView?.isCompact ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                >
+                                                    Std
+                                                </button>
+                                                <button 
+                                                    onClick={() => onUpdateGlobalCustomView({ ...globalCustomView, isCompact: true })}
+                                                    className={`flex-1 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${globalCustomView?.isCompact ? 'bg-zinc-800 text-white shadow' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                >
+                                                    Compact
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="text-zinc-500 text-xs font-medium mb-3 px-1">Drag to reorder. Toggle visibility.</div>
                             {layout.map((col, idx) => (
                                 <div 
@@ -3281,7 +3413,7 @@ const ClientProfileModal = ({ client, onClose, onUpdateClient }: any) => {
     );
 };
 
-const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate, activeViewType, setActiveViewType, globalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges }: any) => {
+const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType }: any) => {
   const [positions, setPositions] = useState(client.positions || []);
   const [isEnriching, setIsEnriching] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -3302,8 +3434,9 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   
-  const compactMode = activeViewType === 'custom' ? globalCustomView?.isCompact : activeViewType === 'compact';
-  const isModularView = activeViewType === 'custom' ? globalCustomView?.framework === 'modular' : activeViewType === 'modular';
+  const compactMode = activeViewType === 'custom' ? globalCustomView?.isCompact : viewPreferences.isCompact;
+  const isModularView = activeViewType === 'custom' ? globalCustomView?.framework === 'modular' : viewPreferences.layout === 'modular';
+  const columns = activeViewType === 'custom' ? globalCustomView.columns : layout;
   
   useEffect(() => {
       if (activeViewType === 'custom') {
@@ -4125,7 +4258,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
       }
   };
 
-  const visibleCols = layout.filter(c => c.visible);
+  const visibleCols = columns.filter(c => c.visible);
 
   return (
     <div 
@@ -4233,14 +4366,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                         <button onClick={() => handleEnrich()} disabled={isEnriching} className="h-full w-8 flex items-center justify-center hover:bg-zinc-800 text-indigo-400 hover:text-indigo-300 transition-colors border-r border-zinc-800" title="AI Scan"><Sparkles className={`h-4 w-4 ${isEnriching ? 'animate-spin text-indigo-200' : ''}`} /></button>
                         <button onClick={() => setShowSaveModal(true)} className="h-full w-8 flex items-center justify-center hover:bg-blue-900/30 text-blue-500 hover:text-blue-400 transition-colors" title="Save Changes"><Save className="h-4 w-4"/></button>
                     </div>
-                    <div className="hidden md:flex flex-col items-end mr-4 animate-in fade-in duration-700">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                            {getGreeting()}
-                        </p>
-                        <p className="text-sm font-bold text-white tracking-tight">
-                            {userProfile.fullName || 'Advisor'}
-                        </p>
-                    </div>
+
                     <button onClick={() => setShowSettingsModal(true)} className="h-8 w-8 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-2" title="Dashboard Settings">
                         <Settings className="h-4 w-4" />
                     </button>
@@ -4251,13 +4377,15 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
         {/* STICKY TRADE METRICS HEADER */}
         <div className="sticky top-0 z-30 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800 px-8 py-3 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-8">
-                <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Total Target %</span>
-                    <span className={`text-sm font-black font-mono ${Math.abs(totals.targetPct - 100) < 0.01 ? 'text-green-500' : 'text-amber-500'}`}>
-                        {totals.targetPct.toFixed(2)}%
-                    </span>
-                </div>
-                <div className="h-8 w-px bg-zinc-800" />
+                {!isAggregated && (
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Total Target %</span>
+                        <span className={`text-sm font-black font-mono ${Math.abs(totals.targetPct - 100) < 0.01 ? 'text-green-500' : 'text-amber-500'}`}>
+                            {totals.targetPct.toFixed(2)}%
+                        </span>
+                    </div>
+                )}
+                {!isAggregated && <div className="h-8 w-px bg-zinc-800" />}
                 <div className="flex flex-col">
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Total Buys</span>
                     <span className="text-sm font-black font-mono text-blue-400">
@@ -4272,29 +4400,55 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                 </div>
             </div>
             <div className="flex items-center gap-6">
-                <div className="flex bg-zinc-900/50 border border-zinc-800 p-1 rounded-full h-9 items-center ml-auto mr-4">
-                    {[
-                        { id: 'standard', icon: Layout, label: 'Standard' },
-                        { id: 'compact', icon: List, label: 'Compact' },
-                        { id: 'modular', icon: LayoutGrid, label: 'Modular' },
-                        { id: 'custom', icon: Settings2, label: 'Custom' }
-                    ].map(view => (
-                        <button
-                            key={view.id}
-                            onClick={() => setActiveViewType(view.id)}
-                            title={view.label}
-                            className={`relative w-8 h-7 rounded-full flex items-center justify-center transition-all ${
-                                activeViewType === view.id 
-                                ? 'bg-blue-600 text-white shadow-lg' 
-                                : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                        >
-                            <view.icon className="h-3.5 w-3.5" />
-                            {view.id === 'custom' && hasUnsavedCustomChanges && (
-                                <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-                            )}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-2 ml-auto mr-4">
+                    {/* Layout Pill */}
+                    <div className="flex bg-zinc-900/50 border border-zinc-800 p-1 rounded-full h-9 items-center">
+                        {[
+                            { id: 'standard', icon: Layout, label: 'Standard' },
+                            { id: 'modular', icon: LayoutGrid, label: 'Modular' },
+                            { id: 'custom', icon: Settings2, label: globalCustomView.name }
+                        ].map(view => (
+                            <Tooltip key={view.id} text={view.label}>
+                                <button
+                                    onClick={() => {
+                                        if (view.id === 'custom') {
+                                            setActiveViewType('custom');
+                                            setViewPreferences(prev => ({ ...prev, layout: 'custom', isCompact: globalCustomView.isCompact }));
+                                        } else {
+                                            setActiveViewType(view.id);
+                                            setViewPreferences(prev => ({ ...prev, layout: view.id }));
+                                        }
+                                    }}
+                                    className={`relative w-8 h-7 rounded-full flex items-center justify-center transition-all ${
+                                        activeViewType === view.id 
+                                        ? 'bg-blue-600 text-white shadow-lg' 
+                                        : 'text-zinc-500 hover:text-zinc-300'
+                                    }`}
+                                >
+                                    <view.icon className="h-3.5 w-3.5" />
+                                    {view.id === 'custom' && hasUnsavedCustomChanges && (
+                                        <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full border border-zinc-950"></span>
+                                    )}
+                                </button>
+                            </Tooltip>
+                        ))}
+                    </div>
+
+                    {/* Density Toggle */}
+                    <div className="flex bg-zinc-900/50 border border-zinc-800 p-1 rounded-full h-9 items-center">
+                        <Tooltip text={viewPreferences.isCompact ? "Normal View" : "Compact View"}>
+                            <button
+                                onClick={() => setViewPreferences(prev => ({ ...prev, isCompact: !prev.isCompact }))}
+                                className={`w-8 h-7 rounded-full flex items-center justify-center transition-all ${
+                                    viewPreferences.isCompact 
+                                    ? 'text-blue-400 bg-blue-400/10' 
+                                    : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </button>
+                        </Tooltip>
+                    </div>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Cash Impact</span>
@@ -4765,6 +4919,8 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
             hiddenBuckets={client.settings?.hiddenBuckets || ['coveredCall']}
             onToggleBucket={handleToggleBucket}
             bucketOrder={client.settings?.bucketOrder}
+            globalCustomView={globalCustomView}
+            onUpdateGlobalCustomView={onUpdateGlobalCustomView}
             onClose={(newBucketOrder) => {
                 onUpdateClient({ 
                     ...client, 
@@ -4822,7 +4978,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
     </div>
   );
 };
-const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate, activeViewType, setActiveViewType, globalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges }: any) => {
+const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType }: any) => {
     const normalizedClient = useMemo(() => {
         if (client.accounts) return client;
         return {
@@ -5047,11 +5203,14 @@ const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onB
                     isAggregated={activeTab === 'overview'}
                     onDeleteAccount={activeTab !== 'overview' ? () => handleDeleteAccount(activeTab) : undefined}
                     onNavigate={onNavigate}
-                    activeViewType={activeViewType}
-                    setActiveViewType={setActiveViewType}
+                    viewPreferences={viewPreferences}
+                    setViewPreferences={setViewPreferences}
                     globalCustomView={globalCustomView}
+                    onUpdateGlobalCustomView={onUpdateGlobalCustomView}
                     hasUnsavedCustomChanges={hasUnsavedCustomChanges}
                     setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
+                    activeViewType={activeViewType}
+                    setActiveViewType={setActiveViewType}
                 />
             </div>
         </div>
@@ -5431,16 +5590,20 @@ const ClientList = ({ clients, onCreateClient, onSelectClient, onDeleteClient, o
                 </button>
             </div>
 
-            <div className="flex bg-zinc-900 border border-zinc-800 rounded-xl p-1 h-12 items-center">
-                {['All', 'A', 'B', 'C', 'D', 'F'].map(t => (
-                    <button
-                        key={t}
-                        onClick={() => setTierFilter(t)}
-                        className={`h-full px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${tierFilter === t ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                    >
-                        {t}
-                    </button>
-                ))}
+            <div className="relative">
+                <select
+                    value={tierFilter}
+                    onChange={(e) => setTierFilter(e.target.value)}
+                    className="appearance-none bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-4 py-2 pr-10 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                >
+                    <option value="All">All Tiers</option>
+                    <option value="A">Black Tier</option>
+                    <option value="B">Gold Tier</option>
+                    <option value="C">Silver Tier</option>
+                    <option value="D">Bronze Tier</option>
+                    <option value="F">Blue Tier</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500 pointer-events-none" />
             </div>
             
             <div className="flex gap-3 bg-zinc-900/50 p-1.5 rounded-2xl border border-zinc-800 shadow-2xl w-full md:w-auto">
@@ -6414,12 +6577,14 @@ export default function App() {
     try {
       const saved = localStorage.getItem('global_custom_view');
       return saved ? JSON.parse(saved) : {
-        framework: 'standard',
+        name: 'Custom View',
+        framework: 'standard', // 'standard' (List) or 'modular'
         isCompact: false,
         columns: DEFAULT_COLUMNS
       };
     } catch (e) {
       return {
+        name: 'Custom View',
         framework: 'standard',
         isCompact: false,
         columns: DEFAULT_COLUMNS
@@ -6430,6 +6595,11 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
   }, [globalCustomView]);
+
+  const [viewPreferences, setViewPreferences] = useState({
+    layout: 'standard', // 'standard', 'modular', or 'custom'
+    isCompact: false
+  });
 
   const [view, setView] = useState('clients');
   const [userProfile, setUserProfile] = useState(() => {
@@ -6516,6 +6686,7 @@ export default function App() {
             if (data.settings.tiingo) localStorage.setItem('user_tiingo_key', data.settings.tiingo);
             if (data.settings.gemini) localStorage.setItem('user_gemini_key', data.settings.gemini);
             if (data.settings.logoDev) localStorage.setItem('user_logo_dev_key', data.settings.logoDev);
+            if (data.globalCustomView) { setGlobalCustomView(data.globalCustomView); localStorage.setItem('global_custom_view', JSON.stringify(data.globalCustomView)); }
             if (data.settings.themeMode) { setThemeMode(data.settings.themeMode); localStorage.setItem('theme_mode', data.settings.themeMode); }
             if (data.settings.themeFlavor) { setThemeFlavor(data.settings.themeFlavor); localStorage.setItem('theme_flavor', data.settings.themeFlavor); }
             if (data.settings.themeAccent) { setAccentColor(data.settings.themeAccent); localStorage.setItem('theme_accent', data.settings.themeAccent); }
@@ -6540,12 +6711,14 @@ export default function App() {
            
            const initialTierSettings = JSON.parse(localStorage.getItem('tier_settings') || '{"mode":"relative","thresholds":{"A":10,"B":25,"C":50,"D":75}}');
            const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"cashMarginAlert":5000,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60}');
+           const initialGlobalCustomView = JSON.parse(localStorage.getItem('global_custom_view') || JSON.stringify({ name: 'Custom View', framework: 'standard', isCompact: false, columns: DEFAULT_COLUMNS }));
            
            setClients(localClients);
            setModels(localModels);
            setAssetOverrides(localOverrides);
            setTierSettings(initialTierSettings);
            setInsightThresholds(initialInsightThresholds);
+           setGlobalCustomView(initialGlobalCustomView);
            
            await setDoc(docRef, JSON.parse(JSON.stringify({
                clients: localClients,
@@ -6553,7 +6726,8 @@ export default function App() {
                assetOverrides: localOverrides,
                settings: initialSettings,
                tierSettings: initialTierSettings,
-               insightThresholds: initialInsightThresholds
+               insightThresholds: initialInsightThresholds,
+               globalCustomView: initialGlobalCustomView
            })));
         }
       } catch (error) {
@@ -6576,6 +6750,7 @@ export default function App() {
     localStorage.setItem('rebalance_asset_overrides', JSON.stringify(assetOverrides));
     localStorage.setItem('tier_settings', JSON.stringify(tierSettings));
     localStorage.setItem('insight_thresholds', JSON.stringify(insightThresholds));
+    localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
 
     const timeoutId = setTimeout(async () => {
       try {
@@ -6585,7 +6760,8 @@ export default function App() {
           assetOverrides,
           bgLibrary,
           tierSettings,
-          insightThresholds
+          insightThresholds,
+          globalCustomView
         })), { merge: true });
       } catch (e) {
         console.error("Error saving to cloud", e);
@@ -6593,7 +6769,7 @@ export default function App() {
     }, 2000); // 2 second debounce to prevent rate limiting
 
     return () => clearTimeout(timeoutId);
-  }, [clients, models, assetOverrides, user, isDataLoading, bgLibrary]);
+  }, [clients, models, assetOverrides, user, isDataLoading, bgLibrary, globalCustomView]);
 
   useEffect(() => {
       const loadCloudBg = async () => {
@@ -6824,11 +7000,14 @@ export default function App() {
                         setRoute({ path: '/', params: {} });
                         setView(tabId);
                     }}
-                    activeViewType={activeViewType}
-                    setActiveViewType={setActiveViewType}
+                    viewPreferences={viewPreferences}
+                    setViewPreferences={setViewPreferences}
                     globalCustomView={globalCustomView}
+                    onUpdateGlobalCustomView={setGlobalCustomView}
                     hasUnsavedCustomChanges={hasUnsavedCustomChanges}
                     setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
+                    activeViewType={activeViewType}
+                    setActiveViewType={setActiveViewType}
                 />
             ) : view === 'settings' ? (
                 <GlobalSettingsPage 
@@ -6865,7 +7044,7 @@ export default function App() {
             ) : view === 'trades' ? (
                 <TradeManager clients={clients} onUpdateClient={handleUpdateClient} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
-                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} />
+                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} onUpdateClient={handleUpdateClient} />
             ) : (
                 <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={handleUpdateClient} />
             )}
