@@ -1948,6 +1948,17 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
                                         />
                                     </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Insufficient Cash (%)</label>
+                                        <input 
+                                            type="number" 
+                                            step="0.01"
+                                            value={insightThresholds.insufficientCash} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, insufficientCash: parseFloat(e.target.value) })}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2024,11 +2035,35 @@ const ApiUsageModal = ({ onClose }) => {
   );
 };
 
-const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'], globalCustomView, onUpdateGlobalCustomView }) => {
+const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'], globalCustomView, onUpdateGlobalCustomView, activeViewType, defaultViewType, setDefaultViewType, setHasUnsavedCustomChanges }) => {
     const [activeTab, setActiveTab] = useState('columns');
     const [draggedColIdx, setDraggedColIdx] = useState(null);
     const [bucketOrder, setBucketOrder] = useState(initialBucketOrder);
     const [draggedBucketIdx, setDraggedBucketIdx] = useState(null);
+    const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+    const handleSaveCustomView = () => {
+        onUpdateGlobalCustomView({
+            ...globalCustomView,
+            columns: layout
+        });
+        if (setHasUnsavedCustomChanges) {
+            setHasUnsavedCustomChanges(false);
+        }
+        triggerSuccessToast();
+    };
+
+    const handleSetGlobalDefault = () => {
+        if (setDefaultViewType && activeViewType) {
+            setDefaultViewType(activeViewType);
+            triggerSuccessToast();
+        }
+    };
+
+    const triggerSuccessToast = () => {
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 2000);
+    };
 
     const toggleCol = (id) => {
         const next = layout.map(col => col.id === id ? { ...col, visible: !col.visible } : col);
@@ -2236,8 +2271,31 @@ const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBuc
                         </>
                     )}
                 </div>
-                <div className="mt-6">
-                    <Button variant="primary" onClick={handleClose} className="w-full rounded-xl py-3 h-12">Done</Button>
+                <div className="mt-6 space-y-3">
+                    {showSuccessToast && (
+                        <div className="text-center text-emerald-400 text-xs font-bold uppercase tracking-widest animate-pulse">
+                            Settings Saved!
+                        </div>
+                    )}
+                    <div className="flex gap-3">
+                        <Button 
+                            variant="primary" 
+                            onClick={handleSaveCustomView} 
+                            className="flex-1 rounded-xl py-3 h-12 flex items-center justify-center gap-2"
+                        >
+                            <Save className="h-4 w-4" />
+                            <span className="text-xs">Save Custom View</span>
+                        </Button>
+                        <Button 
+                            variant="secondary" 
+                            onClick={handleSetGlobalDefault} 
+                            className="flex-1 rounded-xl py-3 h-12 flex items-center justify-center gap-2"
+                        >
+                            <Star className="h-4 w-4" />
+                            <span className="text-xs">Set as Global Default</span>
+                        </Button>
+                    </div>
+                    <Button variant="secondary" onClick={handleClose} className="w-full rounded-xl py-3 h-12">Close</Button>
                 </div>
             </div>
         </div>
@@ -3413,7 +3471,7 @@ const ClientProfileModal = ({ client, onClose, onUpdateClient }: any) => {
     );
 };
 
-const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType }: any) => {
+const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType, defaultViewType, setDefaultViewType }: any) => {
   const [positions, setPositions] = useState(client.positions || []);
   const [isEnriching, setIsEnriching] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -3436,14 +3494,20 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
   
   const compactMode = activeViewType === 'custom' ? globalCustomView?.isCompact : viewPreferences.isCompact;
   const isModularView = activeViewType === 'custom' ? globalCustomView?.framework === 'modular' : viewPreferences.layout === 'modular';
-  const columns = activeViewType === 'custom' ? globalCustomView.columns : layout;
+  const columns = layout;
   
   useEffect(() => {
       if (activeViewType === 'custom') {
           setLayout(globalCustomView.columns);
           setHasUnsavedCustomChanges(false);
+      } else {
+          try { 
+              setLayout(JSON.parse(localStorage.getItem('rebalance_layout')) || DEFAULT_COLUMNS); 
+          } catch(e) { 
+              setLayout(DEFAULT_COLUMNS); 
+          }
       }
-  }, [activeViewType, globalCustomView, setHasUnsavedCustomChanges]);
+  }, [activeViewType, setHasUnsavedCustomChanges]);
 
   const startResizeRef = useRef(null);
 
@@ -4102,6 +4166,12 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
     setSortConfig({ key, direction });
   };
 
+  useEffect(() => {
+      if (activeViewType !== 'custom') {
+          localStorage.setItem('rebalance_layout', JSON.stringify(layout));
+      }
+  }, [layout, activeViewType]);
+
   const handleResizeStart = (e, colId) => {
       e.preventDefault();
       startResizeRef.current = { id: colId, startX: e.clientX, startWidth: layout.find(c => c.id === colId).width };
@@ -4115,19 +4185,19 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
       const newWidth = Math.max(100, startWidth + (e.clientX - startX));
       setLayout(prev => prev.map(col => col.id === id ? { ...col, width: newWidth } : col));
       if (activeViewType === 'custom') setHasUnsavedCustomChanges(true);
-  }, [layout, activeViewType, setHasUnsavedCustomChanges]);
+  }, [activeViewType, setHasUnsavedCustomChanges]);
   
-  const handleResizeEnd = () => {
+  const handleResizeEnd = useCallback(() => {
       startResizeRef.current = null;
       document.removeEventListener('mousemove', handleResizeMove);
       document.removeEventListener('mouseup', handleResizeEnd);
-      localStorage.setItem('rebalance_layout', JSON.stringify(layout));
-  };
+  }, [handleResizeMove]);
 
   const updateLayout = (newLayout) => {
       setLayout(newLayout);
-      localStorage.setItem('rebalance_layout', JSON.stringify(newLayout));
-      if (activeViewType === 'custom') setHasUnsavedCustomChanges(true);
+      if (activeViewType === 'custom') {
+          setHasUnsavedCustomChanges(true);
+      }
   };
 
   const handleToggleBucket = (id) => {
@@ -4921,6 +4991,10 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
             bucketOrder={client.settings?.bucketOrder}
             globalCustomView={globalCustomView}
             onUpdateGlobalCustomView={onUpdateGlobalCustomView}
+            activeViewType={activeViewType}
+            defaultViewType={defaultViewType}
+            setDefaultViewType={setDefaultViewType}
+            setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
             onClose={(newBucketOrder) => {
                 onUpdateClient({ 
                     ...client, 
@@ -4978,7 +5052,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
     </div>
   );
 };
-const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType }: any) => {
+const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate, viewPreferences, setViewPreferences, globalCustomView, onUpdateGlobalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges, activeViewType, setActiveViewType, defaultViewType, setDefaultViewType }: any) => {
     const normalizedClient = useMemo(() => {
         if (client.accounts) return client;
         return {
@@ -5211,6 +5285,8 @@ const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onB
                     setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                     activeViewType={activeViewType}
                     setActiveViewType={setActiveViewType}
+                    defaultViewType={defaultViewType}
+                    setDefaultViewType={setDefaultViewType}
                 />
             </div>
         </div>
@@ -6571,7 +6647,8 @@ const LoginScreen = () => {
 };
 
 export default function App() {
-  const [activeViewType, setActiveViewType] = useState('standard');
+  const [defaultViewType, setDefaultViewType] = useState(() => localStorage.getItem('app_default_view') || 'standard');
+  const [activeViewType, setActiveViewType] = useState(defaultViewType);
   const [hasUnsavedCustomChanges, setHasUnsavedCustomChanges] = useState(false);
   const [globalCustomView, setGlobalCustomView] = useState(() => {
     try {
@@ -6595,6 +6672,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
   }, [globalCustomView]);
+
+  useEffect(() => {
+    localStorage.setItem('app_default_view', defaultViewType);
+  }, [defaultViewType]);
 
   const [viewPreferences, setViewPreferences] = useState({
     layout: 'standard', // 'standard', 'modular', or 'custom'
@@ -6628,6 +6709,13 @@ export default function App() {
   const [assetOverrides, setAssetOverrides] = useState<any>({});
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [route, setRoute] = useState({ path: '/', params: {} });
+
+  useEffect(() => {
+    if (route.path === '/client') {
+      setActiveViewType(defaultViewType);
+    }
+  }, [route.path, route.params.id, defaultViewType]);
+
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [customBg, setCustomBg] = useState(() => localStorage.getItem('user_custom_bg') || '');
   const [themeMode, setThemeMode] = useState(() => localStorage.getItem('theme_mode') || 'dark');
@@ -6640,7 +6728,8 @@ export default function App() {
       taxLossOpportunity: -2000,
       concentrationRisk: 15,
       stalePortfolioDays: 30,
-      bondMaturityDays: 60
+      bondMaturityDays: 60,
+      insufficientCash: 0.5
   });
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -6690,6 +6779,7 @@ export default function App() {
             if (data.settings.themeMode) { setThemeMode(data.settings.themeMode); localStorage.setItem('theme_mode', data.settings.themeMode); }
             if (data.settings.themeFlavor) { setThemeFlavor(data.settings.themeFlavor); localStorage.setItem('theme_flavor', data.settings.themeFlavor); }
             if (data.settings.themeAccent) { setAccentColor(data.settings.themeAccent); localStorage.setItem('theme_accent', data.settings.themeAccent); }
+            if (data.settings.defaultViewType) { setDefaultViewType(data.settings.defaultViewType); localStorage.setItem('app_default_view', data.settings.defaultViewType); }
             if (data.tierSettings) { setTierSettings(data.tierSettings); localStorage.setItem('tier_settings', JSON.stringify(data.tierSettings)); }
             if (data.insightThresholds) { setInsightThresholds(data.insightThresholds); localStorage.setItem('insight_thresholds', JSON.stringify(data.insightThresholds)); }
           }
@@ -6706,11 +6796,12 @@ export default function App() {
                logoDev: localStorage.getItem('user_logo_dev_key') || '',
                themeMode: localStorage.getItem('theme_mode') || 'dark',
                themeFlavor: localStorage.getItem('theme_flavor') || 'zinc',
-               themeAccent: localStorage.getItem('theme_accent') || 'blue'
+               themeAccent: localStorage.getItem('theme_accent') || 'blue',
+               defaultViewType: localStorage.getItem('app_default_view') || 'standard'
            };
            
            const initialTierSettings = JSON.parse(localStorage.getItem('tier_settings') || '{"mode":"relative","thresholds":{"A":10,"B":25,"C":50,"D":75}}');
-           const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"cashMarginAlert":5000,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60}');
+           const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"cashMarginAlert":5000,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60,"insufficientCash":0.5}');
            const initialGlobalCustomView = JSON.parse(localStorage.getItem('global_custom_view') || JSON.stringify({ name: 'Custom View', framework: 'standard', isCompact: false, columns: DEFAULT_COLUMNS }));
            
            setClients(localClients);
@@ -6751,6 +6842,7 @@ export default function App() {
     localStorage.setItem('tier_settings', JSON.stringify(tierSettings));
     localStorage.setItem('insight_thresholds', JSON.stringify(insightThresholds));
     localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
+    localStorage.setItem('app_default_view', defaultViewType);
 
     const timeoutId = setTimeout(async () => {
       try {
@@ -6761,7 +6853,10 @@ export default function App() {
           bgLibrary,
           tierSettings,
           insightThresholds,
-          globalCustomView
+          globalCustomView,
+          settings: {
+            defaultViewType
+          }
         })), { merge: true });
       } catch (e) {
         console.error("Error saving to cloud", e);
@@ -6769,7 +6864,7 @@ export default function App() {
     }, 2000); // 2 second debounce to prevent rate limiting
 
     return () => clearTimeout(timeoutId);
-  }, [clients, models, assetOverrides, user, isDataLoading, bgLibrary, globalCustomView]);
+  }, [clients, models, assetOverrides, user, isDataLoading, bgLibrary, globalCustomView, defaultViewType]);
 
   useEffect(() => {
       const loadCloudBg = async () => {
@@ -7008,6 +7103,8 @@ export default function App() {
                     setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                     activeViewType={activeViewType}
                     setActiveViewType={setActiveViewType}
+                    defaultViewType={defaultViewType}
+                    setDefaultViewType={setDefaultViewType}
                 />
             ) : view === 'settings' ? (
                 <GlobalSettingsPage 

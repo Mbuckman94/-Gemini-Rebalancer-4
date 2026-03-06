@@ -232,9 +232,20 @@ const InsightDetailModal = ({ insight, onClose, sort, onSort }: any) => {
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col">
                 <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
                     <h2 className="text-xl font-black text-white tracking-tight">{insight.title}</h2>
-                    <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
-                        <X className="h-6 w-6" />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {insight.action && (
+                            <button 
+                                onClick={insight.action.onClick}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20"
+                            >
+                                {insight.action.icon && <insight.action.icon className="h-3.5 w-3.5" />}
+                                {insight.action.label}
+                            </button>
+                        )}
+                        <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+                            <X className="h-6 w-6" />
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="p-4 border-b border-zinc-800 bg-zinc-900/50">
@@ -294,6 +305,7 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
       concentrationRisk: 15,
       stalePortfolioDays: 30,
       bondMaturityDays: 60,
+      insufficientCash: 0.5,
       ...insightThresholds
   };
 
@@ -596,6 +608,39 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
       });
     });
     return alerts;
+  }, [clients, safeThresholds]);
+
+  // --- WIDGET 1.25: INSUFFICIENT CASH LEVELS ---
+  const insufficientCashAlerts = useMemo(() => {
+    const alerts: any[] = [];
+    clients.forEach(client => {
+      let totalAUM = 0;
+      let totalCash = 0;
+      const accounts = client.accounts || (client.positions ? [{ positions: client.positions }] : []);
+      accounts.forEach((acc: any) => {
+        (acc.positions || []).forEach((p: any) => {
+          const val = Number(p.currentValue) || 0;
+          totalAUM += val;
+          const isCash = CASH_TICKERS.some(t => p.symbol.toUpperCase().includes(t)) || 
+                         (p.description && p.description.toUpperCase().includes('CASH')) ||
+                         p.metadata?.assetClass === 'Cash';
+          if (isCash) totalCash += val;
+        });
+      });
+      if (totalAUM > 0) {
+        const cashPct = (totalCash / totalAUM) * 100;
+        if (cashPct < safeThresholds.insufficientCash) {
+          alerts.push({
+            clientId: client.id,
+            clientName: client.name,
+            totalAUM,
+            totalCash,
+            cashPct
+          });
+        }
+      }
+    });
+    return alerts.sort((a, b) => a.cashPct - b.cashPct);
   }, [clients, safeThresholds]);
 
   // --- WIDGET 1.5: FCASH HOLDINGS ---
@@ -913,6 +958,11 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
             onClick={() => setActiveInsight({
                 title: 'FCASH Exposure',
                 data: fcashHolders,
+                action: {
+                    label: 'Convert all to FDRXX',
+                    icon: Sparkles,
+                    onClick: handleConvertToFdrxx
+                },
                 columns: [
                     { key: 'clientName', label: 'Client Name' },
                     { key: 'fcashValue', label: 'FCASH Value', render: (val: number) => <span className="font-mono text-blue-400">{formatCurrency(val)}</span> },
@@ -952,6 +1002,67 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
                         className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
                     >
                         View All ({fcashHolders.length})
+                    </button>
+                </div>
+            )}
+        </Card>
+
+        {/* WIDGET 1.75: INSUFFICIENT CASH LEVELS */}
+        <Card 
+            title={`Insufficient Cash (<${safeThresholds.insufficientCash}%)`} 
+            icon={Wallet} 
+            className="h-96 flex flex-col"
+            onClick={() => setActiveInsight({
+                title: 'Insufficient Cash Levels',
+                data: insufficientCashAlerts,
+                columns: [
+                    { key: 'clientName', label: 'Client Name' },
+                    { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                    { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
+                    { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
+                ]
+            })}
+        >
+            <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
+                {insufficientCashAlerts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                        <Wallet className="h-8 w-8 mb-2 opacity-20" />
+                        <span className="text-xs font-bold">No clients with insufficient cash</span>
+                    </div>
+                ) : (
+                    insufficientCashAlerts.slice(0, 5).map((alert, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                            <div>
+                                <div className="font-bold text-zinc-200 text-sm">{alert.clientName}</div>
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">AUM: {formatCurrency(alert.totalAUM)}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-mono font-black text-lg text-red-400">{alert.cashPct.toFixed(2)}%</div>
+                                <div className="text-[9px] font-bold text-zinc-600 uppercase">Cash: {formatCurrency(alert.totalCash)}</div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+            {insufficientCashAlerts.length > 0 && (
+                <div className="pt-4 mt-2 border-t border-zinc-800">
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveInsight({
+                                title: 'Insufficient Cash Levels',
+                                data: insufficientCashAlerts,
+                                columns: [
+                                    { key: 'clientName', label: 'Client Name' },
+                                    { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                                    { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
+                                    { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
+                                ]
+                            });
+                        }}
+                        className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
+                    >
+                        View All ({insufficientCashAlerts.length})
                     </button>
                 </div>
             )}
