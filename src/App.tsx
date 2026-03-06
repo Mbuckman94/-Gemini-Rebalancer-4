@@ -8,7 +8,7 @@ import {
   Copy, Pencil, LineChart, AlertTriangle, FlaskConical, Database, WifiOff, 
   BarChart2, Activity, Banknote, Settings, Columns, GripVertical, ChevronRight, 
   RotateCcw, Landmark, MapPin, Key, Clock, ArrowDownAZ, ArrowUpAZ, 
-  ArrowUpNarrowWide, ArrowDownWideNarrow, LayoutList, DollarSign, Eye, EyeOff, Lightbulb, Lock, Unlock, Save, ChevronLeft, Menu, Image, Sun, Moon, LogOut, Tag, Star, User, FileSpreadsheet
+  ArrowUpNarrowWide, ArrowDownWideNarrow, LayoutList, DollarSign, Eye, EyeOff, Lightbulb, Lock, Unlock, Save, ChevronLeft, Menu, Image, Sun, Moon, LogOut, Tag, Star, User, FileSpreadsheet, Layout, List, Settings2
 } from 'lucide-react';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
@@ -19,6 +19,25 @@ import { fetchFinnhub, fetchTiingoGlobal, callGemini, markKeyAsDead, getFinnhubK
 import { parseFidelityCSV, parseMassImportCSV } from './utils/csvParsers';
 import TradeManager from './components/TradeManager';
 import Button from './components/Button';
+
+const Tooltip = ({ children, text }: { children: React.ReactNode; text: string }) => {
+  const [show, setShow] = React.useState(false);
+  if (!text) return <>{children}</>;
+  return (
+    <div
+      className="relative flex items-center"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-zinc-800 text-white text-[10px] font-bold rounded shadow-lg whitespace-nowrap z-[1000]">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export interface Position {
     id: string;
@@ -643,7 +662,6 @@ const TargetAllocator = ({ positions, client, onUpdateClient }) => {
                             }}
                             disabled={isTargetsLocked}
                             className={`ml-4 p-1.5 rounded-lg transition-colors ${isTargetsLocked ? 'bg-zinc-900/50 border border-zinc-800/50 text-zinc-600 cursor-not-allowed' : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-                            title="Sync All to Current"
                         >
                             <RefreshCw className="h-4 w-4" />
                         </button>
@@ -1077,13 +1095,15 @@ const ApiKeyManager = ({ keys, onChange, label, placeholder }) => {
     );
 };
 
-const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
+const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds, globalCustomView, setGlobalCustomView, setHasUnsavedCustomChanges }) => {
     const [initialUserProfile, setInitialUserProfile] = useState(userProfile);
     const [showPassword, setShowPassword] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
+    const [draggedCustomColIdx, setDraggedCustomColIdx] = useState(null);
+    const [localCustomView, setLocalCustomView] = useState(globalCustomView);
 
     const [finnhubKeys, setFinnhubKeys] = useState(() => { const stored = localStorage.getItem('user_finnhub_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
     const [logoDev, setLogoDev] = useState(localStorage.getItem('user_logo_dev_key') || '');
@@ -1456,20 +1476,22 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                                             
                                                             {/* Minimalist Overlay */}
                                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                                                                <button 
-                                                                    onClick={(e) => { e.stopPropagation(); onSelectFromLibrary(item.url); }}
-                                                                    className={`p-2.5 rounded-xl transition-all shadow-xl ${customBg === item.url ? 'bg-blue-500 text-white scale-110' : 'bg-white text-black hover:bg-zinc-200'}`}
-                                                                    title="Set as active"
-                                                                >
-                                                                    <Check className="h-4 w-4" />
-                                                                </button>
-                                                                <button 
-                                                                    onClick={(e) => { e.stopPropagation(); onDeleteFromLibrary(item.id); }}
-                                                                    className="p-2.5 bg-zinc-900 text-zinc-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-xl border border-zinc-800"
-                                                                    title="Delete from library"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
+                                                                <Tooltip text="Set as active">
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); onSelectFromLibrary(item.url); }}
+                                                                        className={`p-2.5 rounded-xl transition-all shadow-xl ${customBg === item.url ? 'bg-blue-500 text-white scale-110' : 'bg-white text-black hover:bg-zinc-200'}`}
+                                                                    >
+                                                                        <Check className="h-4 w-4" />
+                                                                    </button>
+                                                                </Tooltip>
+                                                                <Tooltip text="Delete from library">
+                                                                    <button 
+                                                                        onClick={(e) => { e.stopPropagation(); onDeleteFromLibrary(item.id); }}
+                                                                        className="p-2.5 bg-zinc-900 text-zinc-400 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-xl border border-zinc-800"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </Tooltip>
                                                             </div>
 
                                                             {customBg === item.url && (
@@ -1489,6 +1511,90 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Custom View Builder Section */}
+                                <div className="pt-8 border-t border-zinc-800">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Custom View Builder</label>
+                                        <Button 
+                                            onClick={() => {
+                                                setGlobalCustomView(localCustomView);
+                                                setHasUnsavedCustomChanges(false);
+                                            }}
+                                            className="px-4 py-1.5 text-xs rounded-lg"
+                                        >
+                                            <Save className="h-3.5 w-3.5 mr-1.5" /> Save View
+                                        </Button>
+                                    </div>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                                            <div className="flex items-center gap-3">
+                                                <Layers className="h-4 w-4 text-zinc-400" />
+                                                <span className="text-sm font-bold text-zinc-300">Starting Framework</span>
+                                            </div>
+                                            <Toggle 
+                                                value={localCustomView?.framework === 'modular' ? 'Modular' : 'Standard'} 
+                                                onChange={(val) => setLocalCustomView({ ...localCustomView, framework: val.toLowerCase() })} 
+                                                options={['Standard', 'Modular']} 
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
+                                            <div className="flex items-center gap-3">
+                                                <LayoutList className="h-4 w-4 text-zinc-400" />
+                                                <span className="text-sm font-bold text-zinc-300">Compact Variant</span>
+                                            </div>
+                                            <Toggle 
+                                                value={localCustomView?.isCompact ? 'On' : 'Off'} 
+                                                onChange={(val) => setLocalCustomView({ ...localCustomView, isCompact: val === 'On' })} 
+                                                options={['On', 'Off']} 
+                                            />
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Custom View Columns</label>
+                                            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                                                {localCustomView?.columns?.map((col, idx) => (
+                                                    <div 
+                                                        key={col.id} 
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            setDraggedCustomColIdx(idx);
+                                                            e.dataTransfer.effectAllowed = "move";
+                                                            e.dataTransfer.setData("text/plain", idx.toString());
+                                                        }}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        onDrop={(e) => {
+                                                            e.preventDefault();
+                                                            if (draggedCustomColIdx === null || draggedCustomColIdx === idx) return;
+                                                            const next = [...(localCustomView.columns || [])];
+                                                            const [moved] = next.splice(draggedCustomColIdx, 1);
+                                                            next.splice(idx, 0, moved);
+                                                            setLocalCustomView({ ...localCustomView, columns: next });
+                                                            setDraggedCustomColIdx(null);
+                                                        }}
+                                                        className={`flex items-center gap-2 w-full p-2 rounded-xl border transition-all cursor-move ${col.visible ? 'bg-zinc-950 border-zinc-800/50' : 'bg-zinc-950/50 border-zinc-800 opacity-60'} ${draggedCustomColIdx === idx ? 'opacity-50 border-blue-500/50' : ''}`}
+                                                    >
+                                                        <div className="text-zinc-600 p-2">
+                                                            <GripVertical className="h-4 w-4" />
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const next = localCustomView.columns.map(c => c.id === col.id ? { ...c, visible: !c.visible } : c);
+                                                                setLocalCustomView({ ...localCustomView, columns: next });
+                                                            }}
+                                                            className="flex-1 flex items-center justify-between px-3 py-2 text-left"
+                                                        >
+                                                            <span className={`font-bold text-sm ${col.visible ? 'text-zinc-100' : 'text-zinc-500'}`}>{col.label}</span>
+                                                            {col.visible ? <Check className="h-4 w-4 text-blue-400" /> : <div className="h-4 w-4 rounded-full border border-zinc-700" />}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1848,7 +1954,7 @@ const ApiUsageModal = ({ onClose }) => {
   );
 };
 
-const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, compactMode = false, onToggleCompactMode, isModularView = false, onToggleModularView, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'] }) => {
+const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBucket, onClose, bucketOrder: initialBucketOrder = ['equity', 'fixedIncome', 'coveredCall', 'cash'] }) => {
     const [activeTab, setActiveTab] = useState('columns');
     const [draggedColIdx, setDraggedColIdx] = useState(null);
     const [bucketOrder, setBucketOrder] = useState(initialBucketOrder);
@@ -1935,22 +2041,6 @@ const SettingsModal = ({ layout, onUpdateLayout, hiddenBuckets = [], onToggleBuc
                      >
                          Portfolio Targets
                      </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl mb-3">
-                    <div className="flex items-center gap-3">
-                        <LayoutList className="h-4 w-4 text-zinc-400" />
-                        <span className="text-sm font-bold text-zinc-300">Compact View</span>
-                    </div>
-                    <Toggle value={compactMode ? 'On' : 'Off'} onChange={(val) => onToggleCompactMode(val === 'On')} options={['On', 'Off']} />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl mb-6">
-                    <div className="flex items-center gap-3">
-                        <Layers className="h-4 w-4 text-zinc-400" />
-                        <span className="text-sm font-bold text-zinc-300">Modular Asset Class View</span>
-                    </div>
-                    <Toggle value={isModularView ? 'On' : 'Off'} onChange={(val) => onToggleModularView(val === 'On')} options={['On', 'Off']} />
                 </div>
 
                 <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -3191,7 +3281,7 @@ const ClientProfileModal = ({ client, onClose, onUpdateClient }: any) => {
     );
 };
 
-const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate }: any) => {
+const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate, activeViewType, setActiveViewType, globalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges }: any) => {
   const [positions, setPositions] = useState(client.positions || []);
   const [isEnriching, setIsEnriching] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -3211,8 +3301,17 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const compactMode = client.settings?.compactMode || false;
-  const isModularView = client.settings?.isModularView || false;
+  
+  const compactMode = activeViewType === 'custom' ? globalCustomView?.isCompact : activeViewType === 'compact';
+  const isModularView = activeViewType === 'custom' ? globalCustomView?.framework === 'modular' : activeViewType === 'modular';
+  
+  useEffect(() => {
+      if (activeViewType === 'custom') {
+          setLayout(globalCustomView.columns);
+          setHasUnsavedCustomChanges(false);
+      }
+  }, [activeViewType, globalCustomView, setHasUnsavedCustomChanges]);
+
   const startResizeRef = useRef(null);
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -3882,7 +3981,8 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
       const { id, startX, startWidth } = startResizeRef.current;
       const newWidth = Math.max(100, startWidth + (e.clientX - startX));
       setLayout(prev => prev.map(col => col.id === id ? { ...col, width: newWidth } : col));
-  }, [layout]);
+      if (activeViewType === 'custom') setHasUnsavedCustomChanges(true);
+  }, [layout, activeViewType, setHasUnsavedCustomChanges]);
   
   const handleResizeEnd = () => {
       startResizeRef.current = null;
@@ -3894,6 +3994,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
   const updateLayout = (newLayout) => {
       setLayout(newLayout);
       localStorage.setItem('rebalance_layout', JSON.stringify(newLayout));
+      if (activeViewType === 'custom') setHasUnsavedCustomChanges(true);
   };
 
   const handleToggleBucket = (id) => {
@@ -4171,6 +4272,30 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                 </div>
             </div>
             <div className="flex items-center gap-6">
+                <div className="flex bg-zinc-900/50 border border-zinc-800 p-1 rounded-full h-9 items-center ml-auto mr-4">
+                    {[
+                        { id: 'standard', icon: Layout, label: 'Standard' },
+                        { id: 'compact', icon: List, label: 'Compact' },
+                        { id: 'modular', icon: LayoutGrid, label: 'Modular' },
+                        { id: 'custom', icon: Settings2, label: 'Custom' }
+                    ].map(view => (
+                        <button
+                            key={view.id}
+                            onClick={() => setActiveViewType(view.id)}
+                            title={view.label}
+                            className={`relative w-8 h-7 rounded-full flex items-center justify-center transition-all ${
+                                activeViewType === view.id 
+                                ? 'bg-blue-600 text-white shadow-lg' 
+                                : 'text-zinc-500 hover:text-zinc-300'
+                            }`}
+                        >
+                            <view.icon className="h-3.5 w-3.5" />
+                            {view.id === 'custom' && hasUnsavedCustomChanges && (
+                                <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
+                            )}
+                        </button>
+                    ))}
+                </div>
                 <div className="flex flex-col items-end">
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Cash Impact</span>
                     <span className={`text-sm font-black font-mono ${totals.tradeValue > 0 ? 'text-red-400' : 'text-green-400'}`}>
@@ -4180,10 +4305,10 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                 <Button 
                     variant="primary" 
                     size="sm" 
-                    onClick={() => onNavigate && onNavigate('trades')}
+                    onClick={() => handleStageTrades(true)}
                     className="rounded-full px-6 h-9 uppercase text-[10px] font-black tracking-widest flex items-center gap-2"
                 >
-                    Review Trades <ArrowRight className="h-3 w-3" />
+                    Export Trades <FileSpreadsheet className="h-3.5 w-3.5" />
                 </Button>
             </div>
         </div>
@@ -4639,10 +4764,6 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
             onUpdateLayout={updateLayout} 
             hiddenBuckets={client.settings?.hiddenBuckets || ['coveredCall']}
             onToggleBucket={handleToggleBucket}
-            compactMode={compactMode}
-            onToggleCompactMode={(val) => onUpdateClient({ ...client, settings: { ...client.settings, compactMode: val }, positions, lastUpdated: new Date().toISOString() })}
-            isModularView={isModularView}
-            onToggleModularView={(val) => onUpdateClient({ ...client, settings: { ...client.settings, isModularView: val }, positions, lastUpdated: new Date().toISOString() })}
             bucketOrder={client.settings?.bucketOrder}
             onClose={(newBucketOrder) => {
                 onUpdateClient({ 
@@ -4691,7 +4812,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
                     <Save className="h-4 w-4 mr-2 text-zinc-400" /> Save Only
                 </Button>
                 <Button onClick={() => handleStageTrades(true)} className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.2)] transition-all border border-transparent">
-                    <FileSpreadsheet className="h-4 w-4 mr-2" /> Save & Stage
+                    <FileSpreadsheet className="h-4 w-4 mr-2" /> Export Trades
                 </Button>
             </div>
             <button onClick={() => setShowSaveModal(false)} className="w-full mt-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">Cancel</button>
@@ -4701,7 +4822,7 @@ const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, 
     </div>
   );
 };
-const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate }: any) => {
+const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate, activeViewType, setActiveViewType, globalCustomView, hasUnsavedCustomChanges, setHasUnsavedCustomChanges }: any) => {
     const normalizedClient = useMemo(() => {
         if (client.accounts) return client;
         return {
@@ -4926,6 +5047,11 @@ const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onB
                     isAggregated={activeTab === 'overview'}
                     onDeleteAccount={activeTab !== 'overview' ? () => handleDeleteAccount(activeTab) : undefined}
                     onNavigate={onNavigate}
+                    activeViewType={activeViewType}
+                    setActiveViewType={setActiveViewType}
+                    globalCustomView={globalCustomView}
+                    hasUnsavedCustomChanges={hasUnsavedCustomChanges}
+                    setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                 />
             </div>
         </div>
@@ -5218,17 +5344,31 @@ const ClientList = ({ clients, onCreateClient, onSelectClient, onDeleteClient, o
       });
   }, [clients, sortConfig, tierSettings, tierFilter]);
 
-  const TierBadge = ({ tier }) => {
-      const styles = {
-          A: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-          B: 'text-zinc-300 bg-zinc-300/10 border-zinc-300/20',
-          C: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
-          D: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-          F: 'text-zinc-600 bg-zinc-900 border-zinc-800'
+  const TierBadge = ({ tier }: { tier: string }) => {
+      const tierIcons: Record<string, string> = {
+          A: '/ACG Lion Black SVG.svg',
+          B: '/ACG Lion Gold SVG.svg',
+          C: '/ACG Lion Silver SVG.svg',
+          D: '/ACG Lion Bronze SVG.svg',
+          F: '/ACG Lion Blue SVG.svg'
       };
       return (
-          <div className={`h-full w-full rounded-full flex items-center justify-center font-black text-lg border ${styles[tier] || styles.F}`}>
-              {tier}
+          <div className="h-full w-full flex items-center justify-center overflow-hidden">
+              <img 
+                  src={tierIcons[tier] || tierIcons.F} 
+                  alt={`Tier ${tier}`}
+                  className="h-full w-full object-contain p-0.5"
+                  onError={(e) => {
+                      // Fallback if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = "h-full w-full rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500 font-black text-xs";
+                      fallback.innerText = tier;
+                      if (e.currentTarget.parentNode) {
+                          e.currentTarget.parentNode.appendChild(fallback);
+                      }
+                  }}
+              />
           </div>
       );
   };
@@ -6224,11 +6364,20 @@ const LoginScreen = () => {
 
       <div className="bg-zinc-900/40 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-8 w-full max-w-md shadow-2xl relative z-10">
         <div className="flex flex-col items-center mb-8">
-          <div className="h-12 w-12 rounded-xl overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900 mb-4">
+          <div className="h-16 w-16 rounded-xl overflow-hidden flex items-center justify-center bg-zinc-900 border border-zinc-800 shadow-lg p-1 mb-4">
             <img 
-                src="/logo.jpg" 
-                alt="Firm Logo" 
+                src="/ACG Lion SVG.svg" 
+                alt="ACG Lion Logo" 
                 className="h-full w-full object-contain" 
+                onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = "h-full w-full bg-blue-600 flex items-center justify-center text-white font-black text-xl";
+                    fallback.innerText = "IA";
+                    if (e.currentTarget.parentNode) {
+                        e.currentTarget.parentNode.appendChild(fallback);
+                    }
+                }}
             />
           </div>
           <h2 className="text-3xl font-black text-white tracking-tighter">Terminal Access</h2>
@@ -6259,6 +6408,29 @@ const LoginScreen = () => {
 };
 
 export default function App() {
+  const [activeViewType, setActiveViewType] = useState('standard');
+  const [hasUnsavedCustomChanges, setHasUnsavedCustomChanges] = useState(false);
+  const [globalCustomView, setGlobalCustomView] = useState(() => {
+    try {
+      const saved = localStorage.getItem('global_custom_view');
+      return saved ? JSON.parse(saved) : {
+        framework: 'standard',
+        isCompact: false,
+        columns: DEFAULT_COLUMNS
+      };
+    } catch (e) {
+      return {
+        framework: 'standard',
+        isCompact: false,
+        columns: DEFAULT_COLUMNS
+      };
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
+  }, [globalCustomView]);
+
   const [view, setView] = useState('clients');
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('user_profile_settings');
@@ -6579,11 +6751,22 @@ export default function App() {
                 {isSidebarExpanded ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <div className={`flex items-center gap-3 mb-8 ${isSidebarExpanded ? 'self-start' : ''}`}>
-                <div className="h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg bg-zinc-900">
+                <div className={`h-10 w-10 rounded-xl overflow-hidden flex items-center justify-center shadow-lg border transition-colors duration-200 ${
+                    themeMode === 'light' ? 'bg-white border-zinc-200' : 'bg-zinc-900 border-zinc-800'
+                }`}>
                     <img 
-                        src="/logo.jpg" 
+                        src={themeMode === 'light' ? "/ACG Lion Black SVG.svg" : "/ACG Lion Gold SVG.svg"} 
                         alt="Firm Logo" 
-                        className="h-full w-full object-contain" 
+                        className="h-full w-full object-contain p-1.5" 
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = document.createElement('div');
+                            fallback.className = "h-full w-full bg-blue-600 flex items-center justify-center text-white font-black text-xs";
+                            fallback.innerText = "IA";
+                            if (e.currentTarget.parentNode) {
+                                e.currentTarget.parentNode.appendChild(fallback);
+                            }
+                        }}
                     />
                 </div>
                 {isSidebarExpanded && (
@@ -6641,6 +6824,11 @@ export default function App() {
                         setRoute({ path: '/', params: {} });
                         setView(tabId);
                     }}
+                    activeViewType={activeViewType}
+                    setActiveViewType={setActiveViewType}
+                    globalCustomView={globalCustomView}
+                    hasUnsavedCustomChanges={hasUnsavedCustomChanges}
+                    setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                 />
             ) : view === 'settings' ? (
                 <GlobalSettingsPage 
@@ -6659,6 +6847,9 @@ export default function App() {
                     onImportClients={handleImportClients}
                     insightThresholds={insightThresholds}
                     setInsightThresholds={setInsightThresholds}
+                    globalCustomView={globalCustomView}
+                    setGlobalCustomView={setGlobalCustomView}
+                    setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                 />
             ) : view === 'clients' ? (
                 <ClientList 
