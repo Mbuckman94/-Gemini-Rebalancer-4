@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles } from 'lucide-react';
+import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff } from 'lucide-react';
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
 
@@ -297,9 +297,140 @@ const InsightDetailModal = ({ insight, onClose, sort, onSort }: any) => {
     );
 };
 
-const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { clients: any[], insightThresholds?: any, onUpdateClient: (updatedClient: any) => void }) => {
+const BillingCountdown = ({ billingInfo }: { billingInfo: any }) => {
+    if (!billingInfo) return null;
+    
+    const { nextBillingDate, totalDays, daysElapsed, daysRemaining } = billingInfo;
+    
+    const dots = Array.from({ length: totalDays }).map((_, i) => {
+        const isPast = i < daysElapsed;
+        const isToday = i === daysElapsed;
+        
+        let className = "w-2 h-2 rounded-full ";
+        if (isPast) className += "bg-blue-500/80";
+        else if (isToday) className += "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]";
+        else className += "border border-zinc-700 bg-transparent";
+        
+        return <div key={i} className={className} />;
+    });
+    
+    return (
+        <Card title="Days until Billing" icon={Calendar} className="h-96 flex flex-col">
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+                <div className="text-5xl font-black text-white mb-2">{daysRemaining}</div>
+                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">Days Remaining</div>
+                
+                <div className="flex flex-wrap gap-1.5 justify-center max-w-[280px]">
+                    {dots}
+                </div>
+            </div>
+            
+            <div className="mt-auto pt-4 border-t border-zinc-800 text-center">
+                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                    Next Billing: {new Date(nextBillingDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset }: { isOpen: boolean, onClose: () => void, layout: any[], setLayout: (layout: any[]) => void, onReset: () => void }) => {
+    if (!isOpen) return null;
+
+    const [tempLayout, setTempLayout] = useState(Array.isArray(layout) ? layout : []);
+
+    const handleToggleVisibility = (id: string) => {
+        setTempLayout(tempLayout.map((item: any) => item.id === id ? { ...item, visible: !item.visible } : item));
+    };
+
+    const handleSizeChange = (id: string, span: number) => {
+        setTempLayout(tempLayout.map((item: any) => item.id === id ? { ...item, span } : item));
+    };
+
+    const handleDragStart = (e: React.DragEvent, id: string) => {
+        e.dataTransfer.setData('text/plain', id);
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if (draggedId === targetId) return;
+
+        const newLayout = [...tempLayout];
+        const draggedIndex = newLayout.findIndex(item => item.id === draggedId);
+        const targetIndex = newLayout.findIndex(item => item.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const [draggedItem] = newLayout.splice(draggedIndex, 1);
+        newLayout.splice(targetIndex, 0, draggedItem);
+        setTempLayout(newLayout);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg flex flex-col shadow-2xl">
+                <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-zinc-800/50 text-zinc-300 rounded-lg">
+                            <Settings className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-white tracking-tight">Dashboard Layout</h2>
+                            <p className="text-xs text-zinc-500 font-medium">Customize your insights view</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-white">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[60vh] space-y-3">
+                    {tempLayout.map((item: any) => (
+                        <div 
+                            key={item.id} 
+                            className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl cursor-move"
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, item.id)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDrop(e, item.id)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <GripVertical className="h-5 w-5 text-zinc-600" />
+                                <button onClick={() => handleToggleVisibility(item.id)} className="text-zinc-400 hover:text-white">
+                                    {item.visible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                                </button>
+                                <span className="text-sm font-bold text-zinc-200">{item.label}</span>
+                            </div>
+                            <div className="flex bg-zinc-900 border border-zinc-700 rounded-lg p-1">
+                                {[1, 2, 3].map(span => (
+                                    <button
+                                        key={span}
+                                        onClick={() => handleSizeChange(item.id, span)}
+                                        className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${item.span === span ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        {span === 1 ? 'S' : span === 2 ? 'M' : 'L'}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="p-6 border-t border-zinc-800 flex justify-between gap-4">
+                    <button onClick={() => { onReset(); onClose(); }} className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors">
+                        Reset to Default
+                    </button>
+                    <button onClick={() => { setLayout(tempLayout); onClose(); }} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors shadow-lg shadow-blue-500/20">
+                        Save Layout
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsightLayout, onUpdateLayout, onUpdateClient, billingInfo, defaultLayout }: { clients: any[], insightThresholds?: any, insightLayout?: any, setInsightLayout?: any, onUpdateLayout?: (layout: any) => void, onUpdateClient: (updatedClient: any) => void, billingInfo?: any, defaultLayout: any[] }) => {
   const safeThresholds = {
-      cashMarginAlert: 5000,
+      excessCashThreshold: 10.0,
       fcashExposure: 10,
       taxLossOpportunity: -2000,
       concentrationRisk: 15,
@@ -333,6 +464,40 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
   const [rawMarketData, setRawMarketData] = useState<any>({});
   const [refreshingAssets, setRefreshingAssets] = useState(new Set());
   const [showFcashModal, setShowFcashModal] = useState(false);
+
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+      setDraggedId(id);
+      e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      if (!draggedId || draggedId === targetId || !Array.isArray(insightLayout)) return;
+
+      const newLayout = [...insightLayout];
+      const draggedIndex = newLayout.findIndex(item => item.id === draggedId);
+      const targetIndex = newLayout.findIndex(item => item.id === targetId);
+
+      if (draggedIndex === -1 || targetIndex === -1) return;
+
+      const [draggedItem] = newLayout.splice(draggedIndex, 1);
+      newLayout.splice(targetIndex, 0, draggedItem);
+
+      if (onUpdateLayout) {
+          onUpdateLayout(newLayout);
+      } else if (setInsightLayout) {
+          setInsightLayout(newLayout);
+      }
+      setDraggedId(null);
+  };
 
   const handleRefreshAsset = async (symbol: string) => {
       setRefreshingAssets(prev => new Set(prev).add(symbol));
@@ -573,8 +738,8 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
       }
   }, [rawMarketData, timeframe, clients]);
 
-  // --- WIDGET 1: CASH DRAG & MARGIN ---
-  const cashAlerts = useMemo(() => {
+  // --- WIDGET 1: EXCESS CASH ---
+  const excessCashAlerts = useMemo(() => {
     const alerts: any[] = [];
     clients.forEach(client => {
       const accounts = client.accounts || (client.positions ? [{ id: 'default', name: 'Primary', positions: client.positions }] : []);
@@ -594,15 +759,16 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
           if (isCash) cashVal += val;
         });
 
-        // Use absolute dollar threshold for alerts
-        if (cashVal < safeThresholds.cashMarginAlert) {
+        const cashPct = totalVal > 0 ? (cashVal / totalVal) * 100 : 0;
+
+        if (cashPct > safeThresholds.excessCashThreshold) {
           alerts.push({
             clientId: client.id,
             clientName: client.name,
             accountName: acc.name,
-            cashPct: totalVal > 0 ? (cashVal / totalVal) * 100 : 0,
+            cashPct,
             cashVal,
-            type: cashVal < 0 ? 'margin' : 'low_cash'
+            type: 'excess'
           });
         }
       });
@@ -863,6 +1029,508 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
       return () => clearInterval(interval);
   }, []);
 
+  const renderWidget = (id: string) => {
+      switch (id) {
+          case 'indices':
+              return (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                      {[
+                          { id: 'QQQ', name: 'Nasdaq', icon: Activity },
+                          { id: 'SPY', name: 'S&P 500', icon: TrendingUp },
+                          { id: 'DIA', name: 'Dow Jones', icon: Landmark }
+                      ].map((index) => {
+                          const data = indexQuotes[index.id];
+                          const isPositive = data.change >= 0;
+                          const Icon = index.icon;
+
+                          return (
+                              <div key={index.id} className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl">
+                                  <div className="flex items-center justify-between mb-4">
+                                      <div className="flex items-center gap-3">
+                                          <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                              <Icon className="h-4 w-4" />
+                                          </div>
+                                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
+                                      </div>
+                                      {loadingIndices && <Loader2 className="h-3 w-3 text-zinc-700 animate-spin" />}
+                                  </div>
+                                  
+                                  <div className="space-y-1">
+                                      <div className="text-2xl font-black text-white font-mono tracking-tighter">
+                                          {data.price > 0 ? formatCurrency(data.price) : '---'}
+                                      </div>
+                                      <div className={`text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                                          {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                          {isPositive ? '+' : ''}{data.change.toFixed(2)} ({isPositive ? '+' : ''}{data.pct.toFixed(2)}%)
+                                      </div>
+                                  </div>
+                              </div>
+                          );
+                      })}
+                  </div>
+              );
+          case 'excessCash':
+              return (
+                  <Card 
+                      title={`Excess Cash (>${safeThresholds.excessCashThreshold}%)`} 
+                      icon={Wallet} 
+                      className="h-96"
+                      onClick={() => setActiveInsight({
+                          title: 'Excess Cash',
+                          data: excessCashAlerts,
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'accountName', label: 'Account' },
+                              { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono">{val.toFixed(1)}%</span> },
+                              { key: 'cashVal', label: 'Cash Value', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> }
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                          {excessCashAlerts.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <Wallet className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">No alerts found</span>
+                              </div>
+                          ) : (
+                              excessCashAlerts.map((alert, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                                      <div>
+                                          <div className="font-bold text-zinc-200 text-sm">{alert.clientName}</div>
+                                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{alert.accountName}</div>
+                                      </div>
+                                      <div className="text-right text-orange-400">
+                                          <div className="font-mono font-black text-lg">{alert.cashPct.toFixed(1)}%</div>
+                                          <div className="text-[9px] font-bold uppercase">Excess Cash</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  </Card>
+              );
+          case 'fcash':
+              return (
+                  <Card 
+                      title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} 
+                      icon={Banknote} 
+                      className="h-96 flex flex-col"
+                      onClick={() => setActiveInsight({
+                          title: 'FCASH Exposure',
+                          data: fcashHolders,
+                          action: {
+                              label: 'Convert all to FDRXX',
+                              icon: Sparkles,
+                              onClick: handleConvertToFdrxx
+                          },
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'fcashValue', label: 'FCASH Value', render: (val: number) => <span className="font-mono text-blue-400">{formatCurrency(val)}</span> },
+                              { key: 'fcashPct', label: '% of Portfolio', render: (val: number) => <span className="font-mono">{val.toFixed(2)}%</span> }
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
+                          {fcashHolders.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <Banknote className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">No FCASH holdings</span>
+                              </div>
+                          ) : (
+                              fcashHolders.slice(0, 5).map((holder, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                                      <div>
+                                          <div className="font-bold text-zinc-200 text-sm">{holder.clientName}</div>
+                                          {holder.fcashPct > 5 && (
+                                              <span className="inline-block mt-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[9px] font-black uppercase tracking-widest rounded">
+                                                  &gt;5% Exposure
+                                              </span>
+                                          )}
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-mono font-black text-lg text-blue-400">{formatCurrency(holder.fcashValue)}</div>
+                                          <div className="text-[9px] font-bold text-zinc-600 uppercase">{holder.fcashPct.toFixed(1)}% of Port</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                      {fcashHolders.length > 0 && (
+                          <div className="pt-4 mt-2 border-t border-zinc-800">
+                              <button 
+                                  onClick={() => setShowFcashModal(true)}
+                                  className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
+                              >
+                                  View All ({fcashHolders.length})
+                              </button>
+                          </div>
+                      )}
+                  </Card>
+              );
+          case 'insufficientCash':
+              return (
+                  <Card 
+                      title={`Insufficient Cash (<${safeThresholds.insufficientCash}%)`} 
+                      icon={Wallet} 
+                      className="h-96 flex flex-col"
+                      onClick={() => setActiveInsight({
+                          title: 'Insufficient Cash Levels',
+                          data: insufficientCashAlerts,
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                              { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
+                              { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
+                          {insufficientCashAlerts.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <Wallet className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">No clients with insufficient cash</span>
+                              </div>
+                          ) : (
+                              insufficientCashAlerts.slice(0, 5).map((alert, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                                      <div>
+                                          <div className="font-bold text-zinc-200 text-sm">{alert.clientName}</div>
+                                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider">AUM: {formatCurrency(alert.totalAUM)}</div>
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-mono font-black text-lg text-red-400">{alert.cashPct.toFixed(2)}%</div>
+                                          <div className="text-[9px] font-bold text-zinc-600 uppercase">Cash: {formatCurrency(alert.totalCash)}</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                      {insufficientCashAlerts.length > 0 && (
+                          <div className="pt-4 mt-2 border-t border-zinc-800">
+                              <button 
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveInsight({
+                                          title: 'Insufficient Cash Levels',
+                                          data: insufficientCashAlerts,
+                                          columns: [
+                                              { key: 'clientName', label: 'Client Name' },
+                                              { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                                              { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
+                                              { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
+                                          ]
+                                      });
+                                  }}
+                                  className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
+                              >
+                                  View All ({insufficientCashAlerts.length})
+                              </button>
+                          </div>
+                      )}
+                  </Card>
+              );
+          case 'taxLoss':
+              return (
+                  <Card 
+                      title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} 
+                      icon={TrendingDown} 
+                      className="h-96"
+                      onClick={() => setActiveInsight({
+                          title: 'Tax-Loss Opportunities',
+                          data: tlhOpportunities,
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
+                              { key: 'accountName', label: 'Account' },
+                              { key: 'glDollar', label: 'Unrealized Loss', render: (val: number) => <span className="font-mono text-red-400">{formatCurrency(val)}</span> }
+                          ]
+                      })}
+                  >
+                       <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                          {tlhOpportunities.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <TrendingDown className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">No opportunities found</span>
+                              </div>
+                          ) : (
+                              tlhOpportunities.map((opp, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl group hover:border-red-500/20 transition-colors">
+                                      <div>
+                                          <div className="flex items-center gap-2">
+                                              <span className="font-black text-white bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{opp.symbol}</span>
+                                              <span className="text-xs text-zinc-400 font-medium">{opp.clientName}</span>
+                                          </div>
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-mono font-bold text-red-400">{formatCurrency(opp.glDollar)}</div>
+                                          <div className="text-[10px] font-mono text-red-500/70">{opp.glPct.toFixed(2)}%</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  </Card>
+              );
+          case 'concentration':
+              return (
+                  <Card 
+                      title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} 
+                      icon={PieChart} 
+                      className="h-96"
+                      onClick={() => setActiveInsight({
+                          title: 'Concentration Risk',
+                          data: concentrationRisks,
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
+                              { key: 'pct', label: 'Weight', render: (val: number) => <span className="font-mono text-orange-400">{val.toFixed(2)}%</span> }
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                          {concentrationRisks.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <PieChart className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">Portfolio diversified</span>
+                              </div>
+                          ) : (
+                              concentrationRisks.map((risk, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                                       <div>
+                                          <div className="font-bold text-zinc-200 text-sm">{risk.clientName}</div>
+                                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                                              <AlertTriangle className="h-3 w-3 text-orange-500" />
+                                              {risk.symbol} Exposure
+                                          </div>
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-mono font-black text-lg text-orange-400">{risk.pct.toFixed(1)}%</div>
+                                          <div className="text-[9px] font-bold text-zinc-600 uppercase">of Portfolio</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  </Card>
+              );
+          case 'stalePortfolios':
+              return (
+                  <Card 
+                      title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} 
+                      icon={Clock} 
+                      className="h-96"
+                      onClick={() => setActiveInsight({
+                          title: 'Stale Bespoke Portfolios',
+                          data: stalePortfolios,
+                          columns: [
+                              { key: 'name', label: 'Client (Account)' },
+                              { key: 'lastUpdated', label: 'Last Updated', render: (val: string) => val ? new Date(val).toLocaleDateString() : 'Never' },
+                              { key: 'lastUpdated', label: 'Days Stale', render: (val: string) => {
+                                  if (!val) return 'N/A';
+                                  const days = Math.ceil((Date.now() - new Date(val).getTime()) / (1000 * 60 * 60 * 24));
+                                  return <span className="font-mono text-orange-400">{days}d</span>;
+                              }}
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar h-full pr-2">
+                          <table className="w-full text-left text-xs">
+                              <thead className="text-[9px] font-black uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-900/90 backdrop-blur-sm z-10">
+                                  <tr>
+                                      <th className="pb-2">Client</th>
+                                      <th className="pb-2 text-right">Value</th>
+                                      <th className="pb-2 text-right">Last Updated</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-800/50">
+                                  {stalePortfolios.map((p, i) => (
+                                      <tr key={i} className="group hover:bg-zinc-800/30 transition-colors">
+                                          <td className="py-2 font-medium text-zinc-300 group-hover:text-white">{p.name}</td>
+                                          <td className="py-2 text-right font-mono text-zinc-400">{formatCurrency(p.totalValue)}</td>
+                                          <td className="py-2 text-right text-zinc-500 font-mono">
+                                              {p.lastUpdated ? new Date(p.lastUpdated).toLocaleDateString() : 'Never'}
+                                          </td>
+                                      </tr>
+                                  ))}
+                                  {stalePortfolios.length === 0 && (
+                                      <tr><td colSpan={3} className="py-8 text-center text-zinc-500">No stale portfolios found.</td></tr>
+                                  )}
+                              </tbody>
+                          </table>
+                      </div>
+                  </Card>
+              );
+          case 'bondMaturities':
+              return (
+                  <Card 
+                      title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} 
+                      icon={Calendar} 
+                      className="h-96"
+                      onClick={() => setActiveInsight({
+                          title: 'Upcoming Bond Maturities',
+                          data: bondMaturities,
+                          columns: [
+                              { key: 'clientName', label: 'Client Name' },
+                              { key: 'symbol', label: 'Symbol', render: (val: string, row: any) => <div className="flex flex-col"><span className="font-bold">{val}</span><span className="text-[9px] text-zinc-500 truncate max-w-[200px]">{row.description}</span></div> },
+                              { key: 'value', label: 'Value', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
+                              { key: 'days', label: 'Days to Maturity', render: (val: number) => <span className="font-mono text-blue-400">{val}d</span> }
+                          ]
+                      })}
+                  >
+                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                          {bondMaturities.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-full text-zinc-600">
+                                  <Calendar className="h-8 w-8 mb-2 opacity-20" />
+                                  <span className="text-xs font-bold">No upcoming maturities</span>
+                              </div>
+                          ) : (
+                              bondMaturities.map((bond, i) => (
+                                  <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
+                                      <div className="max-w-[60%]">
+                                          <div className="font-bold text-zinc-200 text-sm truncate">{bond.clientName}</div>
+                                          <div className="text-[10px] text-zinc-500 uppercase tracking-wider truncate" title={bond.description}>{bond.symbol}</div>
+                                      </div>
+                                      <div className="text-right">
+                                          <div className="font-mono font-black text-lg text-blue-400">{bond.days}d</div>
+                                          <div className="text-[9px] font-bold text-zinc-600 uppercase">{bond.date}</div>
+                                      </div>
+                                  </div>
+                              ))
+                          )}
+                      </div>
+                  </Card>
+              );
+          case 'leaderboard':
+              return (
+                  <div className="space-y-6 h-full">
+                      <div className="flex justify-between items-center">
+                          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                              <Layers className="h-6 w-6 text-blue-500" /> Performance Leaders
+                          </h2>
+                          <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
+                              {['1D', '1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y'].map(tf => (
+                                  <button 
+                                      key={tf}
+                                      onClick={() => setTimeframe(tf)}
+                                      className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${timeframe === tf ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                  >
+                                      {tf}
+                                  </button>
+                              ))}
+                          </div>
+                      </div>
+
+                      {loadingLeaderboard ? (
+                          <div className="h-64 flex flex-col items-center justify-center text-zinc-500 gap-4 bg-zinc-900/30 border border-zinc-800/50 rounded-2xl">
+                              <Activity className="h-8 w-8 animate-spin text-blue-500" />
+                              <span className="text-xs font-black uppercase tracking-widest">Analyzing Market Data...</span>
+                          </div>
+                      ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                              {/* Top Funds */}
+                              <Card title="Top Funds & ETFs" icon={TrendingUp} className="h-96 border-green-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                                      {leaderboardData.topFunds.map((a: any, i: number) => (
+                                          <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
+                                              <div className="flex flex-col truncate pr-2">
+                                                  <span className="font-bold text-white">{a.symbol}</span>
+                                                  <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
+                                                  <button 
+                                                      onClick={() => handleRefreshAsset(a.symbol)}
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
+                                                      disabled={refreshingAssets.has(a.symbol)}
+                                                  >
+                                                      {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </Card>
+
+                              {/* Bottom Funds */}
+                              <Card title="Lagging Funds & ETFs" icon={TrendingDown} className="h-96 border-red-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                                      {leaderboardData.bottomFunds.map((a: any, i: number) => (
+                                          <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
+                                              <div className="flex flex-col truncate pr-2">
+                                                  <span className="font-bold text-white">{a.symbol}</span>
+                                                  <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
+                                                  <button 
+                                                      onClick={() => handleRefreshAsset(a.symbol)}
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
+                                                      disabled={refreshingAssets.has(a.symbol)}
+                                                  >
+                                                      {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </Card>
+
+                              {/* Top Stocks */}
+                              <Card title="Top Stocks" icon={ArrowUp} className="h-96 border-green-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                                      {leaderboardData.topStocks.map((a: any, i: number) => (
+                                          <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
+                                              <div className="flex flex-col truncate pr-2">
+                                                  <span className="font-bold text-white">{a.symbol}</span>
+                                                  <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
+                                                  <button 
+                                                      onClick={() => handleRefreshAsset(a.symbol)}
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
+                                                      disabled={refreshingAssets.has(a.symbol)}
+                                                  >
+                                                      {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </Card>
+
+                              {/* Bottom Stocks */}
+                              <Card title="Bottom Stocks" icon={ArrowDown} className="h-96 border-red-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                                      {leaderboardData.bottomStocks.map((a: any, i: number) => (
+                                          <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
+                                              <div className="flex flex-col truncate pr-2">
+                                                  <span className="font-bold text-white">{a.symbol}</span>
+                                                  <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
+                                                  <button 
+                                                      onClick={() => handleRefreshAsset(a.symbol)}
+                                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
+                                                      disabled={refreshingAssets.has(a.symbol)}
+                                                  >
+                                                      {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
+                                                  </button>
+                                              </div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              </Card>
+                          </div>
+                      )}
+                  </div>
+              );
+          default:
+              return null;
+      }
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto p-8 md:p-12 space-y-8 pb-24">
       <div className="flex justify-between items-end">
@@ -870,498 +1538,38 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
             <h1 className="text-4xl font-black text-white tracking-tighter">Insights</h1>
             <p className="text-zinc-500 text-lg mt-2 font-medium">Automated risk detection and portfolio opportunities.</p>
         </div>
-      </div>
-
-      {/* INDEX PERFORMANCE MODULES */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[
-              { id: 'QQQ', name: 'Nasdaq', icon: Activity },
-              { id: 'SPY', name: 'S&P 500', icon: TrendingUp },
-              { id: 'DIA', name: 'Dow Jones', icon: Landmark }
-          ].map((index) => {
-              const data = indexQuotes[index.id];
-              const isPositive = data.change >= 0;
-              const Icon = index.icon;
-
-              return (
-                  <div key={index.id} className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl">
-                      <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                  <Icon className="h-4 w-4" />
-                              </div>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
-                          </div>
-                          {loadingIndices && <Loader2 className="h-3 w-3 text-zinc-700 animate-spin" />}
-                      </div>
-                      
-                      <div className="space-y-1">
-                          <div className="text-2xl font-black text-white font-mono tracking-tighter">
-                              {data.price > 0 ? formatCurrency(data.price) : '---'}
-                          </div>
-                          <div className={`text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                              {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                              {isPositive ? '+' : ''}{data.change.toFixed(2)} ({isPositive ? '+' : ''}{data.pct.toFixed(2)}%)
-                          </div>
-                      </div>
-                  </div>
-              );
-          })}
+        <button onClick={() => setIsLayoutModalOpen(true)} className="bg-zinc-900 hover:bg-zinc-800 text-white p-3 rounded-full transition-colors border border-zinc-800">
+            <Settings className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        
-        {/* WIDGET 1: CASH & MARGIN */}
-        <Card 
-            title={`Cash & Margin Alerts (<${formatCurrency(safeThresholds.cashMarginAlert)})`} 
-            icon={Wallet} 
-            className="h-96"
-            onClick={() => setActiveInsight({
-                title: 'Cash & Margin Alerts',
-                data: cashAlerts,
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'accountName', label: 'Account' },
-                    { key: 'cashVal', label: 'Cash Balance', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
-                    { key: 'type', label: 'Type', render: (val: string) => <span className={`uppercase font-bold text-[10px] ${val === 'margin' ? 'text-red-400' : 'text-orange-400'}`}>{val === 'margin' ? 'Margin Usage' : 'Low Cash'}</span> }
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
-                {cashAlerts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <Wallet className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">No alerts found</span>
-                    </div>
-                ) : (
-                    cashAlerts.map((alert, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
-                            <div>
-                                <div className="font-bold text-zinc-200 text-sm">{alert.clientName}</div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{alert.accountName}</div>
-                            </div>
-                            <div className={`text-right ${alert.type === 'margin' ? 'text-red-400' : 'text-orange-400'}`}>
-                                <div className="font-mono font-black text-lg">{alert.cashPct.toFixed(1)}%</div>
-                                <div className="text-[9px] font-bold uppercase">{alert.type === 'margin' ? 'Margin Usage' : 'Cash Drag'}</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Card>
-
-        {/* WIDGET 1.5: FCASH EXPOSURE */}
-        <Card 
-            title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} 
-            icon={Banknote} 
-            className="h-96 flex flex-col"
-            onClick={() => setActiveInsight({
-                title: 'FCASH Exposure',
-                data: fcashHolders,
-                action: {
-                    label: 'Convert all to FDRXX',
-                    icon: Sparkles,
-                    onClick: handleConvertToFdrxx
-                },
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'fcashValue', label: 'FCASH Value', render: (val: number) => <span className="font-mono text-blue-400">{formatCurrency(val)}</span> },
-                    { key: 'fcashPct', label: '% of Portfolio', render: (val: number) => <span className="font-mono">{val.toFixed(2)}%</span> }
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
-                {fcashHolders.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <Banknote className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">No FCASH holdings</span>
-                    </div>
-                ) : (
-                    fcashHolders.slice(0, 5).map((holder, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
-                            <div>
-                                <div className="font-bold text-zinc-200 text-sm">{holder.clientName}</div>
-                                {holder.fcashPct > 5 && (
-                                    <span className="inline-block mt-1 px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[9px] font-black uppercase tracking-widest rounded">
-                                        &gt;5% Exposure
-                                    </span>
-                                )}
-                            </div>
-                            <div className="text-right">
-                                <div className="font-mono font-black text-lg text-blue-400">{formatCurrency(holder.fcashValue)}</div>
-                                <div className="text-[9px] font-bold text-zinc-600 uppercase">{holder.fcashPct.toFixed(1)}% of Port</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-            {fcashHolders.length > 0 && (
-                <div className="pt-4 mt-2 border-t border-zinc-800">
-                    <button 
-                        onClick={() => setShowFcashModal(true)}
-                        className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
-                    >
-                        View All ({fcashHolders.length})
-                    </button>
-                </div>
-            )}
-        </Card>
-
-        {/* WIDGET 1.75: INSUFFICIENT CASH LEVELS */}
-        <Card 
-            title={`Insufficient Cash (<${safeThresholds.insufficientCash}%)`} 
-            icon={Wallet} 
-            className="h-96 flex flex-col"
-            onClick={() => setActiveInsight({
-                title: 'Insufficient Cash Levels',
-                data: insufficientCashAlerts,
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
-                    { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
-                    { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
-                {insufficientCashAlerts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <Wallet className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">No clients with insufficient cash</span>
-                    </div>
-                ) : (
-                    insufficientCashAlerts.slice(0, 5).map((alert, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
-                            <div>
-                                <div className="font-bold text-zinc-200 text-sm">{alert.clientName}</div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider">AUM: {formatCurrency(alert.totalAUM)}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-mono font-black text-lg text-red-400">{alert.cashPct.toFixed(2)}%</div>
-                                <div className="text-[9px] font-bold text-zinc-600 uppercase">Cash: {formatCurrency(alert.totalCash)}</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-            {insufficientCashAlerts.length > 0 && (
-                <div className="pt-4 mt-2 border-t border-zinc-800">
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveInsight({
-                                title: 'Insufficient Cash Levels',
-                                data: insufficientCashAlerts,
-                                columns: [
-                                    { key: 'clientName', label: 'Client Name' },
-                                    { key: 'totalAUM', label: 'Total AUM', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
-                                    { key: 'totalCash', label: 'Cash Balance', render: (val: number) => <span className="font-mono text-orange-400">{formatCurrency(val)}</span> },
-                                    { key: 'cashPct', label: 'Actual %', render: (val: number) => <span className="font-mono text-red-400">{val.toFixed(2)}%</span> }
-                                ]
-                            });
-                        }}
-                        className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-colors"
-                    >
-                        View All ({insufficientCashAlerts.length})
-                    </button>
-                </div>
-            )}
-        </Card>
-
-        {/* WIDGET 2: TAX LOSS HARVESTING */}
-        <Card 
-            title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} 
-            icon={TrendingDown} 
-            className="h-96"
-            onClick={() => setActiveInsight({
-                title: 'Tax-Loss Opportunities',
-                data: tlhOpportunities,
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
-                    { key: 'accountName', label: 'Account' },
-                    { key: 'glDollar', label: 'Unrealized Loss', render: (val: number) => <span className="font-mono text-red-400">{formatCurrency(val)}</span> }
-                ]
-            })}
-        >
-             <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
-                {tlhOpportunities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <TrendingDown className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">No opportunities found</span>
-                    </div>
-                ) : (
-                    tlhOpportunities.map((opp, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl group hover:border-red-500/20 transition-colors">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-black text-white bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{opp.symbol}</span>
-                                    <span className="text-xs text-zinc-400 font-medium">{opp.clientName}</span>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-mono font-bold text-red-400">{formatCurrency(opp.glDollar)}</div>
-                                <div className="text-[10px] font-mono text-red-500/70">{opp.glPct.toFixed(2)}%</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Card>
-
-        {/* WIDGET 3: CONCENTRATION RISK */}
-        <Card 
-            title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} 
-            icon={PieChart} 
-            className="h-96"
-            onClick={() => setActiveInsight({
-                title: 'Concentration Risk',
-                data: concentrationRisks,
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'symbol', label: 'Symbol', render: (val: string) => <span className="font-black bg-zinc-800 px-1.5 py-0.5 rounded text-xs">{val}</span> },
-                    { key: 'pct', label: 'Weight', render: (val: number) => <span className="font-mono text-orange-400">{val.toFixed(2)}%</span> }
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
-                {concentrationRisks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <PieChart className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">Portfolio diversified</span>
-                    </div>
-                ) : (
-                    concentrationRisks.map((risk, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
-                             <div>
-                                <div className="font-bold text-zinc-200 text-sm">{risk.clientName}</div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                                    <AlertTriangle className="h-3 w-3 text-orange-500" />
-                                    {risk.symbol} Exposure
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-mono font-black text-lg text-orange-400">{risk.pct.toFixed(1)}%</div>
-                                <div className="text-[9px] font-bold text-zinc-600 uppercase">of Portfolio</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Card>
-
-        {/* WIDGET 4: STALE BESPOKE PORTFOLIOS */}
-        <Card 
-            title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} 
-            icon={Clock} 
-            className="h-96"
-            onClick={() => setActiveInsight({
-                title: 'Stale Bespoke Portfolios',
-                data: stalePortfolios,
-                columns: [
-                    { key: 'name', label: 'Client (Account)' },
-                    { key: 'lastUpdated', label: 'Last Updated', render: (val: string) => val ? new Date(val).toLocaleDateString() : 'Never' },
-                    { key: 'lastUpdated', label: 'Days Stale', render: (val: string) => {
-                        if (!val) return 'N/A';
-                        const days = Math.ceil((Date.now() - new Date(val).getTime()) / (1000 * 60 * 60 * 24));
-                        return <span className="font-mono text-orange-400">{days}d</span>;
-                    }}
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar h-full pr-2">
-                <table className="w-full text-left text-xs">
-                    <thead className="text-[9px] font-black uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-900/90 backdrop-blur-sm z-10">
-                        <tr>
-                            <th className="pb-2">Client</th>
-                            <th className="pb-2 text-right">Value</th>
-                            <th className="pb-2 text-right">Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800/50">
-                        {stalePortfolios.map((p, i) => (
-                            <tr key={i} className="group hover:bg-zinc-800/30 transition-colors">
-                                <td className="py-2 font-medium text-zinc-300 group-hover:text-white">{p.name}</td>
-                                <td className="py-2 text-right font-mono text-zinc-400">{formatCurrency(p.totalValue)}</td>
-                                <td className="py-2 text-right text-zinc-500 font-mono">
-                                    {p.lastUpdated ? new Date(p.lastUpdated).toLocaleDateString() : 'Never'}
-                                </td>
-                            </tr>
-                        ))}
-                        {stalePortfolios.length === 0 && (
-                            <tr><td colSpan={3} className="py-8 text-center text-zinc-500">No stale portfolios found.</td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </Card>
-
-        {/* WIDGET 5: UPCOMING BOND MATURITIES */}
-        <Card 
-            title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} 
-            icon={Calendar} 
-            className="h-96"
-            onClick={() => setActiveInsight({
-                title: 'Upcoming Bond Maturities',
-                data: bondMaturities,
-                columns: [
-                    { key: 'clientName', label: 'Client Name' },
-                    { key: 'symbol', label: 'Symbol', render: (val: string, row: any) => <div className="flex flex-col"><span className="font-bold">{val}</span><span className="text-[9px] text-zinc-500 truncate max-w-[200px]">{row.description}</span></div> },
-                    { key: 'value', label: 'Value', render: (val: number) => <span className="font-mono">{formatCurrency(val)}</span> },
-                    { key: 'days', label: 'Days to Maturity', render: (val: number) => <span className="font-mono text-blue-400">{val}d</span> }
-                ]
-            })}
-        >
-            <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
-                {bondMaturities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-zinc-600">
-                        <Calendar className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs font-bold">No upcoming maturities</span>
-                    </div>
-                ) : (
-                    bondMaturities.map((bond, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-950/50 border border-zinc-800/50 rounded-xl">
-                            <div className="max-w-[60%]">
-                                <div className="font-bold text-zinc-200 text-sm truncate">{bond.clientName}</div>
-                                <div className="text-[10px] text-zinc-500 uppercase tracking-wider truncate" title={bond.description}>{bond.symbol}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="font-mono font-black text-lg text-blue-400">{bond.days}d</div>
-                                <div className="text-[9px] font-bold text-zinc-600 uppercase">{bond.date}</div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-        </Card>
-
-        {/* WIDGET 7: LEADERBOARDS */}
-        <div className="col-span-1 md:col-span-2 xl:col-span-3 space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                    <Layers className="h-6 w-6 text-blue-500" /> Performance Leaders
-                </h2>
-                <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
-                    {['1D', '1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y'].map(tf => (
-                        <button 
-                            key={tf}
-                            onClick={() => setTimeframe(tf)}
-                            className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${timeframe === tf ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                            {tf}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {loadingLeaderboard ? (
-                <div className="h-64 flex flex-col items-center justify-center text-zinc-500 gap-4 bg-zinc-900/30 border border-zinc-800/50 rounded-2xl">
-                    <Activity className="h-8 w-8 animate-spin text-blue-500" />
-                    <span className="text-xs font-black uppercase tracking-widest">Analyzing Market Data...</span>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {/* Top Funds */}
-                    <Card title="Top Funds & ETFs" icon={TrendingUp} className="h-96 border-green-500/20">
-                        <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
-                            {leaderboardData.topFunds.map((a: any, i: number) => (
-                                <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
-                                    <div className="flex flex-col truncate pr-2">
-                                        <span className="font-bold text-white">{a.symbol}</span>
-                                        <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
-                                        <button 
-                                            onClick={() => handleRefreshAsset(a.symbol)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
-                                            disabled={refreshingAssets.has(a.symbol)}
-                                        >
-                                            {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Bottom Funds */}
-                    <Card title="Lagging Funds & ETFs" icon={TrendingDown} className="h-96 border-red-500/20">
-                        <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
-                            {leaderboardData.bottomFunds.map((a: any, i: number) => (
-                                <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
-                                    <div className="flex flex-col truncate pr-2">
-                                        <span className="font-bold text-white">{a.symbol}</span>
-                                        <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
-                                        <button 
-                                            onClick={() => handleRefreshAsset(a.symbol)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
-                                            disabled={refreshingAssets.has(a.symbol)}
-                                        >
-                                            {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Top Stocks */}
-                    <Card title="Top Stocks" icon={ArrowUp} className="h-96 border-green-500/20">
-                        <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
-                            {leaderboardData.topStocks.map((a: any, i: number) => (
-                                <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
-                                    <div className="flex flex-col truncate pr-2">
-                                        <span className="font-bold text-white">{a.symbol}</span>
-                                        <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
-                                        <button 
-                                            onClick={() => handleRefreshAsset(a.symbol)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
-                                            disabled={refreshingAssets.has(a.symbol)}
-                                        >
-                                            {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-
-                    {/* Bottom Stocks */}
-                    <Card title="Bottom Stocks" icon={ArrowDown} className="h-96 border-red-500/20">
-                        <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
-                            {leaderboardData.bottomStocks.map((a: any, i: number) => (
-                                <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
-                                    <div className="flex flex-col truncate pr-2">
-                                        <span className="font-bold text-white">{a.symbol}</span>
-                                        <span className="text-[9px] text-zinc-500 truncate" title={a.description}>{a.description}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`font-mono font-bold ${a.pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>{a.pct > 0 ? '+' : ''}{a.pct.toFixed(2)}%</span>
-                                        <button 
-                                            onClick={() => handleRefreshAsset(a.symbol)}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-zinc-800 rounded"
-                                            disabled={refreshingAssets.has(a.symbol)}
-                                        >
-                                            {refreshingAssets.has(a.symbol) ? <Loader2 className="h-3 w-3 animate-spin text-zinc-400" /> : <RefreshCw className="h-3 w-3 text-zinc-500 hover:text-white" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-            )}
+        <div className="col-span-1 md:col-span-2 xl:col-span-1">
+            <BillingCountdown billingInfo={billingInfo} />
         </div>
+        
+        {Array.isArray(insightLayout) && insightLayout.filter((item: any) => item.visible).map((item: any) => {
+            const spanClass = {
+                1: 'xl:col-span-1',
+                2: 'xl:col-span-2',
+                3: 'xl:col-span-3'
+            }[item.span as 1 | 2 | 3] || 'xl:col-span-1';
 
+            return (
+                <div 
+                    key={item.id} 
+                    className={`col-span-1 md:col-span-2 ${spanClass}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, item.id)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, item.id)}
+                >
+                    {renderWidget(item.id)}
+                </div>
+            );
+        })}
       </div>
-      
+
       {/* FCASH MODAL */}
       {showFcashModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1419,6 +1627,15 @@ const InsightsDashboard = ({ clients, insightThresholds, onUpdateClient }: { cli
               </div>
           </div>
       )}
+      {/* LAYOUT CONFIGURATION MODAL */}
+      <InsightSettingsModal 
+          isOpen={isLayoutModalOpen} 
+          onClose={() => setIsLayoutModalOpen(false)} 
+          layout={insightLayout} 
+          setLayout={setInsightLayout} 
+          onReset={() => setInsightLayout(defaultLayout)} 
+      />
+
       {activeInsight && (
           <InsightDetailModal 
               insight={activeInsight} 

@@ -100,6 +100,18 @@ const GLOBAL_QUOTE_CACHE = new Map(); // key: symbol, value: { price, yield, tim
 const QUOTE_CACHE_TTL = 60000; // 60 seconds
 let globalFirmOverviewCache: any = { assets: [], lastUpdated: 0, clientHash: '' };
 
+const DEFAULT_INSIGHT_LAYOUT = [
+  { id: 'indices', label: 'Market Indices', visible: true, span: 3 },
+  { id: 'excessCash', label: 'Excess Cash', visible: true, span: 1 },
+  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, span: 1 },
+  { id: 'fcash', label: 'FCASH Holdings', visible: true, span: 1 },
+  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, span: 1 },
+  { id: 'concentration', label: 'Concentration Risk', visible: true, span: 1 },
+  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, span: 1 },
+  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, span: 1 },
+  { id: 'leaderboard', label: 'Market Leaderboards', visible: true, span: 2 }
+];
+
 // --- DEFAULT LAYOUT ---
 const DEFAULT_COLUMNS = [
   { id: 'symbol', label: 'Security', width: 200, visible: true },
@@ -1098,15 +1110,13 @@ const ApiKeyManager = ({ keys, onChange, label, placeholder }) => {
     );
 };
 
-const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds, globalCustomView, setGlobalCustomView, setHasUnsavedCustomChanges }) => {
+const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
     const [initialUserProfile, setInitialUserProfile] = useState(userProfile);
     const [showPassword, setShowPassword] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
-    const [draggedCustomColIdx, setDraggedCustomColIdx] = useState(null);
-    const [localCustomView, setLocalCustomView] = useState(globalCustomView);
 
     const [finnhubKeys, setFinnhubKeys] = useState(() => { const stored = localStorage.getItem('user_finnhub_key'); return stored ? stored.split(',').filter(k => k.trim()) : []; });
     const [logoDev, setLogoDev] = useState(localStorage.getItem('user_logo_dev_key') || '');
@@ -1378,73 +1388,6 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                     </div>
                                 </div>
 
-                                {/* Custom View Master Template Section */}
-                                <div className="pt-8 border-t border-zinc-800/50">
-                                    <div className="flex items-center justify-between mb-6">
-                                        <div>
-                                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Custom View Master Template</h3>
-                                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Configure your default custom layout settings</p>
-                                        </div>
-                                        <div className="h-8 w-8 bg-zinc-800/50 rounded-lg flex items-center justify-center border border-zinc-700/50">
-                                            <Settings2 className="h-4 w-4 text-zinc-400" />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {/* Rename Input */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">View Name</label>
-                                            <input 
-                                                type="text"
-                                                value={globalCustomView.name}
-                                                onChange={(e) => setGlobalCustomView({ ...globalCustomView, name: e.target.value })}
-                                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 transition-all"
-                                                placeholder="Enter view name..."
-                                            />
-                                        </div>
-
-                                        {/* Framework Toggle */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Framework</label>
-                                            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                                                {[
-                                                    { id: 'standard', label: 'Standard List', icon: List },
-                                                    { id: 'modular', label: 'Modular Groups', icon: LayoutGrid }
-                                                ].map(opt => (
-                                                    <button 
-                                                        key={opt.id}
-                                                        onClick={() => setGlobalCustomView({ ...globalCustomView, framework: opt.id })}
-                                                        className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${globalCustomView.framework === opt.id ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                                    >
-                                                        <opt.icon className="h-3.5 w-3.5" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Density Toggle */}
-                                        <div className="space-y-3">
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Information Density</label>
-                                            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                                                {[
-                                                    { id: false, label: 'Standard', icon: Layout },
-                                                    { id: true, label: 'Compact', icon: List }
-                                                ].map(opt => (
-                                                    <button 
-                                                        key={String(opt.id)}
-                                                        onClick={() => setGlobalCustomView({ ...globalCustomView, isCompact: opt.id })}
-                                                        className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all ${globalCustomView.isCompact === opt.id ? 'bg-zinc-800 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                                    >
-                                                        <opt.icon className="h-3.5 w-3.5" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Drag & Drop Zone */}
                                 {themeMode === 'custom' && (
                                     <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -1581,90 +1524,6 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Custom View Master Template */}
-                                <div className="pt-8 border-t border-zinc-800">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500">Custom View Master Template</label>
-                                        <Button 
-                                            onClick={() => {
-                                                setGlobalCustomView(localCustomView);
-                                                setHasUnsavedCustomChanges(false);
-                                            }}
-                                            className="px-4 py-1.5 text-xs rounded-lg"
-                                        >
-                                            <Save className="h-3.5 w-3.5 mr-1.5" /> Save Current as Master
-                                        </Button>
-                                    </div>
-                                    
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
-                                            <div className="flex items-center gap-3">
-                                                <Layers className="h-4 w-4 text-zinc-400" />
-                                                <span className="text-sm font-bold text-zinc-300">Starting Framework</span>
-                                            </div>
-                                            <Toggle 
-                                                value={localCustomView?.framework === 'modular' ? 'Modular' : 'Standard'} 
-                                                onChange={(val) => setLocalCustomView({ ...localCustomView, framework: val.toLowerCase() })} 
-                                                options={['Standard', 'Modular']} 
-                                            />
-                                        </div>
-
-                                        <div className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl">
-                                            <div className="flex items-center gap-3">
-                                                <LayoutList className="h-4 w-4 text-zinc-400" />
-                                                <span className="text-sm font-bold text-zinc-300">Default Density</span>
-                                            </div>
-                                            <Toggle 
-                                                value={localCustomView?.isCompact ? 'Compact' : 'Normal'} 
-                                                onChange={(val) => setLocalCustomView({ ...localCustomView, isCompact: val === 'Compact' })} 
-                                                options={['Normal', 'Compact']} 
-                                            />
-                                        </div>
-
-                                        <div className="mt-6">
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Custom View Columns</label>
-                                            <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
-                                                {localCustomView?.columns?.map((col, idx) => (
-                                                    <div 
-                                                        key={col.id} 
-                                                        draggable
-                                                        onDragStart={(e) => {
-                                                            setDraggedCustomColIdx(idx);
-                                                            e.dataTransfer.effectAllowed = "move";
-                                                            e.dataTransfer.setData("text/plain", idx.toString());
-                                                        }}
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                        onDrop={(e) => {
-                                                            e.preventDefault();
-                                                            if (draggedCustomColIdx === null || draggedCustomColIdx === idx) return;
-                                                            const next = [...(localCustomView.columns || [])];
-                                                            const [moved] = next.splice(draggedCustomColIdx, 1);
-                                                            next.splice(idx, 0, moved);
-                                                            setLocalCustomView({ ...localCustomView, columns: next });
-                                                            setDraggedCustomColIdx(null);
-                                                        }}
-                                                        className={`flex items-center gap-2 w-full p-2 rounded-xl border transition-all cursor-move ${col.visible ? 'bg-zinc-950 border-zinc-800/50' : 'bg-zinc-950/50 border-zinc-800 opacity-60'} ${draggedCustomColIdx === idx ? 'opacity-50 border-blue-500/50' : ''}`}
-                                                    >
-                                                        <div className="text-zinc-600 p-2">
-                                                            <GripVertical className="h-4 w-4" />
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => {
-                                                                const next = localCustomView.columns.map(c => c.id === col.id ? { ...c, visible: !c.visible } : c);
-                                                                setLocalCustomView({ ...localCustomView, columns: next });
-                                                            }}
-                                                            className="flex-1 flex items-center justify-between px-3 py-2 text-left"
-                                                        >
-                                                            <span className={`font-bold text-sm ${col.visible ? 'text-zinc-100' : 'text-zinc-500'}`}>{col.label}</span>
-                                                            {col.visible ? <Check className="h-4 w-4 text-blue-400" /> : <div className="h-4 w-4 rounded-full border border-zinc-700" />}
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     )}
@@ -1889,11 +1748,12 @@ const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMo
                             <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Cash Margin Alert ($)</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Excess Cash Alert (%)</label>
                                         <input 
                                             type="number" 
-                                            value={insightThresholds.cashMarginAlert} 
-                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, cashMarginAlert: parseFloat(e.target.value) })}
+                                            step="0.1"
+                                            value={insightThresholds.excessCashThreshold} 
+                                            onChange={(e) => setInsightThresholds({ ...insightThresholds, excessCashThreshold: parseFloat(e.target.value) })}
                                             onFocus={(e) => e.target.select()}
                                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-blue-500 transition-colors"
                                         />
@@ -6646,6 +6506,45 @@ const LoginScreen = () => {
   );
 };
 
+const getBillingInfo = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-11
+  
+  let currentQuarterStartMonth;
+  let nextQuarterStartMonth;
+  let nextQuarterYear = year;
+
+  if (month < 3) {
+    currentQuarterStartMonth = 0;
+    nextQuarterStartMonth = 3;
+  } else if (month < 6) {
+    currentQuarterStartMonth = 3;
+    nextQuarterStartMonth = 6;
+  } else if (month < 9) {
+    currentQuarterStartMonth = 6;
+    nextQuarterStartMonth = 9;
+  } else {
+    currentQuarterStartMonth = 9;
+    nextQuarterStartMonth = 0;
+    nextQuarterYear = year + 1;
+  }
+
+  const currentQuarterStart = new Date(year, currentQuarterStartMonth, 1);
+  const nextQuarterStart = new Date(nextQuarterYear, nextQuarterStartMonth, 1);
+
+  const totalDays = Math.round((nextQuarterStart.getTime() - currentQuarterStart.getTime()) / (1000 * 60 * 60 * 24));
+  const daysElapsed = Math.round((now.getTime() - currentQuarterStart.getTime()) / (1000 * 60 * 60 * 24));
+  const daysRemaining = totalDays - daysElapsed;
+
+  return {
+    nextBillingDate: nextQuarterStart,
+    totalDays,
+    daysElapsed,
+    daysRemaining
+  };
+};
+
 export default function App() {
   const [defaultViewType, setDefaultViewType] = useState(() => localStorage.getItem('app_default_view') || 'standard');
   const [activeViewType, setActiveViewType] = useState(defaultViewType);
@@ -6722,14 +6621,35 @@ export default function App() {
   const [themeFlavor, setThemeFlavor] = useState(() => localStorage.getItem('theme_flavor') || 'zinc');
   const [accentColor, setAccentColor] = useState(() => localStorage.getItem('theme_accent') || 'blue');
   const [tierSettings, setTierSettings] = useState(() => JSON.parse(localStorage.getItem('tier_settings')) || { mode: 'relative', thresholds: { A: 10, B: 25, C: 50, D: 75 } });
-  const [insightThresholds, setInsightThresholds] = useState(() => JSON.parse(localStorage.getItem('insight_thresholds')) || {
-      cashMarginAlert: 5000,
-      fcashExposure: 10,
-      taxLossOpportunity: -2000,
-      concentrationRisk: 15,
-      stalePortfolioDays: 30,
-      bondMaturityDays: 60,
-      insufficientCash: 0.5
+  const [insightThresholds, setInsightThresholds] = useState(() => {
+      const stored = JSON.parse(localStorage.getItem('insight_thresholds') || 'null');
+      if (stored) {
+          if (stored.cashMarginAlert !== undefined && stored.excessCashThreshold === undefined) {
+              stored.excessCashThreshold = 10.0;
+              delete stored.cashMarginAlert;
+          }
+          return stored;
+      }
+      return {
+          excessCashThreshold: 10.0,
+          fcashExposure: 10,
+          taxLossOpportunity: -2000,
+          concentrationRisk: 15,
+          stalePortfolioDays: 30,
+          bondMaturityDays: 60,
+          insufficientCash: 0.5
+      };
+  });
+  const [insightLayout, setInsightLayout] = useState(() => {
+      try {
+          const parsed = JSON.parse(localStorage.getItem('insight_layout') || 'null');
+          if (parsed) {
+              return Array.isArray(parsed) ? parsed : Object.values(parsed);
+          }
+          return DEFAULT_INSIGHT_LAYOUT;
+      } catch (e) {
+          return DEFAULT_INSIGHT_LAYOUT;
+      }
   });
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -6781,7 +6701,19 @@ export default function App() {
             if (data.settings.themeAccent) { setAccentColor(data.settings.themeAccent); localStorage.setItem('theme_accent', data.settings.themeAccent); }
             if (data.settings.defaultViewType) { setDefaultViewType(data.settings.defaultViewType); localStorage.setItem('app_default_view', data.settings.defaultViewType); }
             if (data.tierSettings) { setTierSettings(data.tierSettings); localStorage.setItem('tier_settings', JSON.stringify(data.tierSettings)); }
-            if (data.insightThresholds) { setInsightThresholds(data.insightThresholds); localStorage.setItem('insight_thresholds', JSON.stringify(data.insightThresholds)); }
+            if (data.insightThresholds) { 
+                const thresholds = data.insightThresholds;
+                if (thresholds.cashMarginAlert !== undefined && thresholds.excessCashThreshold === undefined) {
+                    thresholds.excessCashThreshold = 10.0;
+                    delete thresholds.cashMarginAlert;
+                }
+                setInsightThresholds(thresholds); 
+                localStorage.setItem('insight_thresholds', JSON.stringify(thresholds)); 
+            }
+            if (data.insightLayout) {
+                setInsightLayout(data.insightLayout);
+                localStorage.setItem('insight_layout', JSON.stringify(data.insightLayout));
+            }
           }
         } else {
            // Auto-Migration
@@ -6801,8 +6733,18 @@ export default function App() {
            };
            
            const initialTierSettings = JSON.parse(localStorage.getItem('tier_settings') || '{"mode":"relative","thresholds":{"A":10,"B":25,"C":50,"D":75}}');
-           const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"cashMarginAlert":5000,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60,"insufficientCash":0.5}');
+           const initialInsightThresholds = JSON.parse(localStorage.getItem('insight_thresholds') || '{"excessCashThreshold":10.0,"fcashExposure":10,"taxLossOpportunity":-2000,"concentrationRisk":15,"stalePortfolioDays":30,"bondMaturityDays":60,"insufficientCash":0.5}');
+           if (initialInsightThresholds.cashMarginAlert !== undefined && initialInsightThresholds.excessCashThreshold === undefined) {
+               initialInsightThresholds.excessCashThreshold = 10.0;
+               delete initialInsightThresholds.cashMarginAlert;
+           }
            const initialGlobalCustomView = JSON.parse(localStorage.getItem('global_custom_view') || JSON.stringify({ name: 'Custom View', framework: 'standard', isCompact: false, columns: DEFAULT_COLUMNS }));
+           let initialInsightLayout = JSON.parse(localStorage.getItem('insight_layout') || 'null');
+           if (initialInsightLayout) {
+               initialInsightLayout = Array.isArray(initialInsightLayout) ? initialInsightLayout : Object.values(initialInsightLayout);
+           } else {
+               initialInsightLayout = DEFAULT_INSIGHT_LAYOUT;
+           }
            
            setClients(localClients);
            setModels(localModels);
@@ -6810,6 +6752,7 @@ export default function App() {
            setTierSettings(initialTierSettings);
            setInsightThresholds(initialInsightThresholds);
            setGlobalCustomView(initialGlobalCustomView);
+           setInsightLayout(initialInsightLayout);
            
            await setDoc(docRef, JSON.parse(JSON.stringify({
                clients: localClients,
@@ -6818,7 +6761,8 @@ export default function App() {
                settings: initialSettings,
                tierSettings: initialTierSettings,
                insightThresholds: initialInsightThresholds,
-               globalCustomView: initialGlobalCustomView
+               globalCustomView: initialGlobalCustomView,
+               insightLayout: initialInsightLayout
            })));
         }
       } catch (error) {
@@ -6842,6 +6786,7 @@ export default function App() {
     localStorage.setItem('tier_settings', JSON.stringify(tierSettings));
     localStorage.setItem('insight_thresholds', JSON.stringify(insightThresholds));
     localStorage.setItem('global_custom_view', JSON.stringify(globalCustomView));
+    localStorage.setItem('insight_layout', JSON.stringify(insightLayout));
     localStorage.setItem('app_default_view', defaultViewType);
 
     const timeoutId = setTimeout(async () => {
@@ -6854,6 +6799,7 @@ export default function App() {
           tierSettings,
           insightThresholds,
           globalCustomView,
+          insightLayout,
           settings: {
             defaultViewType
           }
@@ -7123,9 +7069,6 @@ export default function App() {
                     onImportClients={handleImportClients}
                     insightThresholds={insightThresholds}
                     setInsightThresholds={setInsightThresholds}
-                    globalCustomView={globalCustomView}
-                    setGlobalCustomView={setGlobalCustomView}
-                    setHasUnsavedCustomChanges={setHasUnsavedCustomChanges}
                 />
             ) : view === 'clients' ? (
                 <ClientList 
@@ -7141,7 +7084,7 @@ export default function App() {
             ) : view === 'trades' ? (
                 <TradeManager clients={clients} onUpdateClient={handleUpdateClient} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
-                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} onUpdateClient={handleUpdateClient} />
+                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} insightLayout={insightLayout} setInsightLayout={setInsightLayout} onUpdateClient={handleUpdateClient} billingInfo={getBillingInfo()} defaultLayout={DEFAULT_INSIGHT_LAYOUT} />
             ) : (
                 <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={handleUpdateClient} />
             )}
