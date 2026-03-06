@@ -1077,20 +1077,7 @@ const ApiKeyManager = ({ keys, onChange, label, placeholder }) => {
     );
 };
 
-const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
-    const [userProfile, setUserProfile] = useState(() => {
-        const saved = localStorage.getItem('user_profile_settings');
-        return saved ? JSON.parse(saved) : {
-            fullName: '',
-            firmName: '',
-            email: '',
-            password: '',
-            crdNumber: '',
-            complianceEmail: '',
-            phone: '',
-            twoFactorEnabled: false
-        };
-    });
+const GlobalSettingsPage = ({ userProfile, setUserProfile, themeMode, setThemeMode, themeFlavor, setThemeFlavor, accentColor, setAccentColor, customBg, setCustomBg, bgLibrary, onAddToLibrary, onSelectFromLibrary, onDeleteFromLibrary, user, tierSettings, setTierSettings, onImportClients, insightThresholds, setInsightThresholds }) => {
     const [initialUserProfile, setInitialUserProfile] = useState(userProfile);
     const [showPassword, setShowPassword] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -1520,11 +1507,11 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                             </div>
 
                             <div className="grid grid-cols-1 gap-6">
-                                {/* Professional Identity Card */}
+                                {/* Advisor Profile Card */}
                                 <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 space-y-6">
                                     <div className="flex items-center gap-3 border-b border-zinc-800 pb-4">
                                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Briefcase className="h-5 w-5" /></div>
-                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Professional Identity</h3>
+                                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Advisor Profile</h3>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1570,17 +1557,6 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                                                 onFocus={(e) => e.target.select()}
                                                 className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
                                                 placeholder="e.g. +1 (555) 000-0000"
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Compliance Email (CC for Archiving)</label>
-                                            <input 
-                                                type="email" 
-                                                value={userProfile.complianceEmail}
-                                                onChange={(e) => setUserProfile({...userProfile, complianceEmail: e.target.value})}
-                                                onFocus={(e) => e.target.select()}
-                                                className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                                                placeholder="compliance@firm.com"
                                             />
                                         </div>
                                     </div>
@@ -1637,9 +1613,9 @@ const GlobalSettingsPage = ({ themeMode, setThemeMode, themeFlavor, setThemeFlav
                                             </div>
                                             <button 
                                                 onClick={() => setUserProfile({...userProfile, twoFactorEnabled: !userProfile.twoFactorEnabled})}
-                                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${userProfile.twoFactorEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+                                                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none flex items-center ${userProfile.twoFactorEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
                                             >
-                                                <span className={`inline-block w-4 h-4 transform rounded-full bg-white transition duration-200 ease-in-out mt-1 ml-1 ${userProfile.twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                                <span className={`inline-block w-4 h-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${userProfile.twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                             </button>
                                         </div>
                                     </div>
@@ -3215,7 +3191,7 @@ const ClientProfileModal = ({ client, onClose, onUpdateClient }: any) => {
     );
 };
 
-const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate }: any) => {
+const Rebalancer = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, isAggregated, onDeleteAccount, assetOverrides, setAssetOverrides, onNavigate }: any) => {
   const [positions, setPositions] = useState(client.positions || []);
   const [isEnriching, setIsEnriching] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -4156,6 +4132,21 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
                         <button onClick={() => handleEnrich()} disabled={isEnriching} className="h-full w-8 flex items-center justify-center hover:bg-zinc-800 text-indigo-400 hover:text-indigo-300 transition-colors border-r border-zinc-800" title="AI Scan"><Sparkles className={`h-4 w-4 ${isEnriching ? 'animate-spin text-indigo-200' : ''}`} /></button>
                         <button onClick={() => setShowSaveModal(true)} className="h-full w-8 flex items-center justify-center hover:bg-blue-900/30 text-blue-500 hover:text-blue-400 transition-colors" title="Save Changes"><Save className="h-4 w-4"/></button>
                     </div>
+                    <div className="flex items-center gap-3 mr-4">
+                        <img 
+                            src="YOUR_LOGO_URL_HERE" 
+                            alt="Firm Logo" 
+                            className="h-8 w-8 object-contain rounded-lg" 
+                        />
+                        <div className="hidden md:flex flex-col items-end animate-in fade-in duration-700">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                                {getGreeting()}
+                            </p>
+                            <p className="text-sm font-bold text-white tracking-tight">
+                                {userProfile.fullName || 'Advisor'}
+                            </p>
+                        </div>
+                    </div>
                     <button onClick={() => setShowSettingsModal(true)} className="h-8 w-8 rounded-full flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors ml-2" title="Dashboard Settings">
                         <Settings className="h-4 w-4" />
                     </button>
@@ -4717,7 +4708,7 @@ const Rebalancer = ({ client, onUpdateClient, onBack, models, isAggregated, onDe
     </div>
   );
 };
-const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate }: any) => {
+const ClientDashboard = ({ client, userProfile, getGreeting, onUpdateClient, onBack, models, assetOverrides, setAssetOverrides, onNavigate }: any) => {
     const normalizedClient = useMemo(() => {
         if (client.accounts) return client;
         return {
@@ -4932,6 +4923,8 @@ const ClientDashboard = ({ client, onUpdateClient, onBack, models, assetOverride
                 <Rebalancer 
                     key={activeTab} 
                     client={portfolioData}
+                    userProfile={userProfile}
+                    getGreeting={getGreeting}
                     onUpdateClient={handleUpdateData}
                     onBack={onBack}
                     models={models}
@@ -6268,6 +6261,26 @@ const LoginScreen = () => {
 
 export default function App() {
   const [view, setView] = useState('clients');
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('user_profile_settings');
+    return saved ? JSON.parse(saved) : {
+        fullName: '',
+        firmName: '',
+        email: '',
+        password: '',
+        crdNumber: '',
+        phone: '',
+        twoFactorEnabled: false
+    };
+  });
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
   const [clients, setClients] = useState<Client[]>([]);
   const [models, setModels] = useState<any[]>([]);
   const [bgLibrary, setBgLibrary] = useState<any[]>([]);
@@ -6566,7 +6579,15 @@ export default function App() {
             >
                 {isSidebarExpanded ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <div className={`h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-600/30 mb-8 ${isSidebarExpanded ? 'self-start' : ''}`}>IA</div>
+            <div className={`flex items-center gap-3 mb-8 ${isSidebarExpanded ? 'self-start' : ''}`}>
+                <div className="h-10 w-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-lg shadow-blue-600/30">IA</div>
+                {isSidebarExpanded && (
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{getGreeting()},</span>
+                        <span className="text-sm font-bold text-white truncate max-w-[140px]">{userProfile.fullName || 'Advisor'}</span>
+                    </div>
+                )}
+            </div>
             <div className="flex flex-col gap-4 w-full px-2 flex-1">
                 <button onClick={() => { setView('insights'); setRoute({ path: '/', params: {} }); }} className={`h-12 w-full rounded-xl flex items-center ${isSidebarExpanded ? 'justify-start px-4' : 'justify-center'} transition-all ${view === 'insights' && route.path !== '/client' ? 'bg-zinc-800 text-blue-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
                     <Lightbulb className="h-5 w-5 shrink-0" />
@@ -6604,6 +6625,8 @@ export default function App() {
             {route.path === '/client' && activeClient ? (
                 <ClientDashboard 
                     client={activeClient} 
+                    userProfile={userProfile}
+                    getGreeting={getGreeting}
                     models={models} 
                     assetOverrides={assetOverrides}
                     setAssetOverrides={setAssetOverrides}
@@ -6616,6 +6639,7 @@ export default function App() {
                 />
             ) : view === 'settings' ? (
                 <GlobalSettingsPage 
+                    userProfile={userProfile} setUserProfile={setUserProfile}
                     themeMode={themeMode} setThemeMode={setThemeMode}
                     themeFlavor={themeFlavor} setThemeFlavor={setThemeFlavor}
                     accentColor={accentColor} setAccentColor={setAccentColor}
