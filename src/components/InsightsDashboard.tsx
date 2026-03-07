@@ -315,7 +315,7 @@ const BillingCountdown = ({ billingInfo }: { billingInfo: any }) => {
     });
     
     return (
-        <Card title="Days until Billing" icon={Calendar} className="h-96 flex flex-col">
+        <Card title="Days until Billing" icon={Calendar} className="h-full flex flex-col">
             <div className="flex-1 flex flex-col items-center justify-center p-4">
                 <div className="text-5xl font-black text-white mb-2">{daysRemaining}</div>
                 <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">Days Remaining</div>
@@ -435,6 +435,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
 
   const handleResizeStart = (e: React.MouseEvent, id: string, w: number, h: number) => {
       e.stopPropagation();
+      e.preventDefault();
       setResizingModule({ id, startW: w, startH: h, startX: e.clientX, startY: e.clientY });
   };
 
@@ -447,15 +448,13 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
           const dx = e.clientX - resizingModule.startX;
           const dy = e.clientY - resizingModule.startY;
           
-          const containerWidth = containerRef.current?.offsetWidth || 1200;
-          const colWidth = containerWidth / 24;
-          const heightStep = 80;
+          const colWidth = containerRef.current!.offsetWidth / 24;
           
           const dw = Math.round(dx / colWidth);
-          const dh = Math.round(dy / heightStep);
+          const dh = Math.round(dy / 15);
           
-          const newW = Math.max(1, Math.min(24, resizingModule.startW + dw));
-          const newH = Math.max(1, Math.min(24, resizingModule.startH + dh));
+          const newW = Math.max(2, Math.min(24, resizingModule.startW + dw));
+          const newH = Math.max(6, resizingModule.startH + dh);
           
           if (newW !== resizingModule.startW || newH !== resizingModule.startH) {
               const newLayout = insightLayout.map((item: any) => item.id === resizingModule.id ? { ...item, w: newW, h: newH } : item);
@@ -1125,7 +1124,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Excess Cash (>${safeThresholds.excessCashThreshold}%)`} 
                       icon={Wallet} 
-                      className="h-96"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Excess Cash',
                           data: excessCashAlerts,
@@ -1137,7 +1136,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                           ]
                       })}
                   >
-                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                           {excessCashAlerts.length === 0 ? (
                               <div className="flex flex-col items-center justify-center h-full text-zinc-600">
                                   <Wallet className="h-8 w-8 mb-2 opacity-20" />
@@ -1165,7 +1164,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`FCASH Exposure (>${safeThresholds.fcashExposure}%)`} 
                       icon={Banknote} 
-                      className="h-96 flex flex-col"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'FCASH Exposure',
                           data: fcashHolders,
@@ -1223,7 +1222,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Insufficient Cash (<${safeThresholds.insufficientCash}%)`} 
                       icon={Wallet} 
-                      className="h-96 flex flex-col"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Insufficient Cash Levels',
                           data: insufficientCashAlerts,
@@ -1285,7 +1284,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Tax-Loss Opportunities (<${formatCurrency(safeThresholds.taxLossOpportunity)})`} 
                       icon={TrendingDown} 
-                      className="h-96"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Tax-Loss Opportunities',
                           data: tlhOpportunities,
@@ -1297,7 +1296,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                           ]
                       })}
                   >
-                       <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                       <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                           {tlhOpportunities.length === 0 ? (
                               <div className="flex flex-col items-center justify-center h-full text-zinc-600">
                                   <TrendingDown className="h-8 w-8 mb-2 opacity-20" />
@@ -1327,7 +1326,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Concentration Risk (>${safeThresholds.concentrationRisk}%)`} 
                       icon={PieChart} 
-                      className="h-96"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Concentration Risk',
                           data: concentrationRisks,
@@ -1338,7 +1337,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                           ]
                       })}
                   >
-                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                           {concentrationRisks.length === 0 ? (
                               <div className="flex flex-col items-center justify-center h-full text-zinc-600">
                                   <PieChart className="h-8 w-8 mb-2 opacity-20" />
@@ -1369,7 +1368,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Stale Bespoke Portfolios (>${safeThresholds.stalePortfolioDays} Days)`} 
                       icon={Clock} 
-                      className="h-96"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Stale Bespoke Portfolios',
                           data: stalePortfolios,
@@ -1384,7 +1383,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                           ]
                       })}
                   >
-                      <div className="overflow-y-auto custom-scrollbar h-full pr-2">
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2">
                           <table className="w-full text-left text-xs">
                               <thead className="text-[9px] font-black uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-900/90 backdrop-blur-sm z-10">
                                   <tr>
@@ -1416,7 +1415,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                   <Card 
                       title={`Bond Maturities (<${safeThresholds.bondMaturityDays} Days)`} 
                       icon={Calendar} 
-                      className="h-96"
+                      className="h-full flex flex-col"
                       onClick={() => setActiveInsight({
                           title: 'Upcoming Bond Maturities',
                           data: bondMaturities,
@@ -1428,7 +1427,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                           ]
                       })}
                   >
-                      <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-3">
+                      <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-3">
                           {bondMaturities.length === 0 ? (
                               <div className="flex flex-col items-center justify-center h-full text-zinc-600">
                                   <Calendar className="h-8 w-8 mb-2 opacity-20" />
@@ -1479,8 +1478,8 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                       ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                               {/* Top Funds */}
-                              <Card title="Top Funds & ETFs" icon={TrendingUp} className="h-96 border-green-500/20">
-                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                              <Card title="Top Funds & ETFs" icon={TrendingUp} className="h-full flex flex-col border-green-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-1">
                                       {leaderboardData.topFunds.map((a: any, i: number) => (
                                           <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
                                               <div className="flex flex-col truncate pr-2">
@@ -1503,8 +1502,8 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                               </Card>
 
                               {/* Bottom Funds */}
-                              <Card title="Lagging Funds & ETFs" icon={TrendingDown} className="h-96 border-red-500/20">
-                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                              <Card title="Lagging Funds & ETFs" icon={TrendingDown} className="h-full flex flex-col border-red-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-1">
                                       {leaderboardData.bottomFunds.map((a: any, i: number) => (
                                           <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
                                               <div className="flex flex-col truncate pr-2">
@@ -1527,8 +1526,8 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                               </Card>
 
                               {/* Top Stocks */}
-                              <Card title="Top Stocks" icon={ArrowUp} className="h-96 border-green-500/20">
-                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                              <Card title="Top Stocks" icon={ArrowUp} className="h-full flex flex-col border-green-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-1">
                                       {leaderboardData.topStocks.map((a: any, i: number) => (
                                           <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
                                               <div className="flex flex-col truncate pr-2">
@@ -1551,8 +1550,8 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                               </Card>
 
                               {/* Bottom Stocks */}
-                              <Card title="Bottom Stocks" icon={ArrowDown} className="h-96 border-red-500/20">
-                                  <div className="overflow-y-auto custom-scrollbar h-full pr-2 space-y-1">
+                              <Card title="Bottom Stocks" icon={ArrowDown} className="h-full flex flex-col border-red-500/20">
+                                  <div className="overflow-y-auto custom-scrollbar flex-1 pr-2 space-y-1">
                                       {leaderboardData.bottomStocks.map((a: any, i: number) => (
                                           <div key={i} className="group flex justify-between items-center text-xs py-2 border-b border-zinc-800/50 last:border-0">
                                               <div className="flex flex-col truncate pr-2">
@@ -1594,15 +1593,13 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
         </button>
       </div>
 
-      <div className="grid grid-cols-24 gap-6" ref={containerRef}>
+      <div className="grid grid-cols-24 gap-6" ref={containerRef} style={{ gridAutoRows: '15px' }}>
         {Array.isArray(insightLayout) && insightLayout.filter((item: any) => item.visible).map((item: any) => {
-            const colSpan = `col-span-${Math.min(24, Math.max(1, item.w))}`;
-            const rowSpan = `row-span-${Math.min(24, Math.max(1, item.h))}`;
-
             return (
                 <div 
                     key={item.id} 
-                    className={`relative ${colSpan} ${rowSpan} ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''} transition-[grid-column-end,grid-row-end] duration-150 ease-out`}
+                    className={`relative ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''} transition-[grid-column-end,grid-row-end] duration-150 ease-in-out`}
+                    style={{ gridColumn: `span ${item.w} / span ${item.w}`, gridRow: `span ${item.h} / span ${item.h}` }}
                     draggable
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onDragOver={handleDragOver}
@@ -1611,7 +1608,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
                     {renderWidget(item.id, item.w)}
                     {isInsightResizingUnlocked && (
                         <div 
-                            className="absolute bottom-0 right-0 p-1 cursor-se-resize bg-blue-500 text-white rounded-tl-lg"
+                            className="absolute bottom-0 right-0 p-1 cursor-se-resize bg-blue-500 text-white rounded-tl-lg z-20"
                             onMouseDown={(e) => handleResizeStart(e, item.id, item.w, item.h)}
                         >
                             <Maximize2 className="h-4 w-4" />

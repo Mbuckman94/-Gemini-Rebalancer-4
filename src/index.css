@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+.grid-cols-24 { grid-template-columns: repeat(24, minmax(0, 1fr)); }
+/* Generate spans for 1 through 24 */
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.col-span-5 { grid-column: span 5 / span 5; }
+.col-span-6 { grid-column: span 6 / span 6; }
+.col-span-7 { grid-column: span 7 / span 7; }
+.col-span-8 { grid-column: span 8 / span 8; }
+.col-span-9 { grid-column: span 9 / span 9; }
+.col-span-10 { grid-column: span 10 / span 10; }
+.col-span-11 { grid-column: span 11 / span 11; }
+.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-13 { grid-column: span 13 / span 13; }
+.col-span-14 { grid-column: span 14 / span 14; }
+.col-span-15 { grid-column: span 15 / span 15; }
+.col-span-16 { grid-column: span 16 / span 16; }
+.col-span-17 { grid-column: span 17 / span 17; }
+.col-span-18 { grid-column: span 18 / span 18; }
+.col-span-19 { grid-column: span 19 / span 19; }
+.col-span-20 { grid-column: span 20 / span 20; }
+.col-span-21 { grid-column: span 21 / span 21; }
+.col-span-22 { grid-column: span 22 / span 22; }
+.col-span-23 { grid-column: span 23 / span 23; }
+.col-span-24 { grid-column: span 24 / span 24; }

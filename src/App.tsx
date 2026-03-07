@@ -101,18 +101,18 @@ const QUOTE_CACHE_TTL = 60000; // 60 seconds
 let globalFirmOverviewCache: any = { assets: [], lastUpdated: 0, clientHash: '' };
 
 const DEFAULT_INSIGHT_LAYOUT = [
-  { id: 'billing', label: 'Days until Billing', visible: true, w: 8, h: 4 },
-  { id: 'spy', label: 'S&P 500', visible: true, w: 8, h: 4 },
-  { id: 'qqq', label: 'Nasdaq', visible: true, w: 8, h: 4 },
-  { id: 'dia', label: 'Dow Jones', visible: true, w: 8, h: 4 },
-  { id: 'excessCash', label: 'Excess Cash', visible: true, w: 8, h: 4 },
-  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, w: 8, h: 4 },
-  { id: 'fcash', label: 'FCASH Holdings', visible: true, w: 8, h: 4 },
-  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, w: 8, h: 4 },
-  { id: 'concentration', label: 'Concentration Risk', visible: true, w: 8, h: 4 },
-  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, w: 8, h: 4 },
-  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, w: 8, h: 4 },
-  { id: 'leaderboard', label: 'Performance Leaders', visible: true, w: 24, h: 8 }
+  { id: 'billing', label: 'Days until Billing', visible: true, w: 8, h: 20 },
+  { id: 'spy', label: 'S&P 500', visible: true, w: 8, h: 10 },
+  { id: 'qqq', label: 'Nasdaq', visible: true, w: 8, h: 10 },
+  { id: 'dia', label: 'Dow Jones', visible: true, w: 8, h: 10 },
+  { id: 'excessCash', label: 'Excess Cash', visible: true, w: 8, h: 26 },
+  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, w: 8, h: 26 },
+  { id: 'fcash', label: 'FCASH Holdings', visible: true, w: 8, h: 26 },
+  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, w: 8, h: 26 },
+  { id: 'concentration', label: 'Concentration Risk', visible: true, w: 8, h: 26 },
+  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, w: 8, h: 26 },
+  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, w: 8, h: 26 },
+  { id: 'leaderboard', label: 'Performance Leaders', visible: true, w: 24, h: 40 }
 ];
 
 // --- DEFAULT LAYOUT ---
