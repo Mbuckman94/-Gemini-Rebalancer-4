@@ -101,15 +101,18 @@ const QUOTE_CACHE_TTL = 60000; // 60 seconds
 let globalFirmOverviewCache: any = { assets: [], lastUpdated: 0, clientHash: '' };
 
 const DEFAULT_INSIGHT_LAYOUT = [
-  { id: 'indices', label: 'Market Indices', visible: true, span: 3 },
-  { id: 'excessCash', label: 'Excess Cash', visible: true, span: 1 },
-  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, span: 1 },
-  { id: 'fcash', label: 'FCASH Holdings', visible: true, span: 1 },
-  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, span: 1 },
-  { id: 'concentration', label: 'Concentration Risk', visible: true, span: 1 },
-  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, span: 1 },
-  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, span: 1 },
-  { id: 'leaderboard', label: 'Market Leaderboards', visible: true, span: 2 }
+  { id: 'billing', label: 'Days until Billing', visible: true, w: 1, h: 1 },
+  { id: 'spy', label: 'S&P 500', visible: true, w: 1, h: 1 },
+  { id: 'qqq', label: 'Nasdaq', visible: true, w: 1, h: 1 },
+  { id: 'dia', label: 'Dow Jones', visible: true, w: 1, h: 1 },
+  { id: 'excessCash', label: 'Excess Cash', visible: true, w: 1, h: 1 },
+  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, w: 1, h: 1 },
+  { id: 'fcash', label: 'FCASH Holdings', visible: true, w: 1, h: 1 },
+  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, w: 1, h: 1 },
+  { id: 'concentration', label: 'Concentration Risk', visible: true, w: 1, h: 1 },
+  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, w: 1, h: 1 },
+  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, w: 1, h: 1 },
+  { id: 'leaderboard', label: 'Performance Leaders', visible: true, w: 3, h: 2 }
 ];
 
 // --- DEFAULT LAYOUT ---
@@ -6582,6 +6585,8 @@ export default function App() {
   });
 
   const [view, setView] = useState('clients');
+  const [isInsightResizingUnlocked, setIsInsightResizingUnlocked] = useState(false);
+
   const [userProfile, setUserProfile] = useState(() => {
     const saved = localStorage.getItem('user_profile_settings');
     return saved ? JSON.parse(saved) : {
@@ -6651,6 +6656,14 @@ export default function App() {
           return DEFAULT_INSIGHT_LAYOUT;
       }
   });
+
+  useEffect(() => {
+    localStorage.setItem('insight_layout', JSON.stringify(insightLayout));
+    if (auth.currentUser) {
+      setDoc(doc(db, 'users', auth.currentUser.uid, 'settings', 'insight_layout'), { layout: insightLayout });
+    }
+  }, [insightLayout]);
+
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
@@ -7084,7 +7097,17 @@ export default function App() {
             ) : view === 'trades' ? (
                 <TradeManager clients={clients} onUpdateClient={handleUpdateClient} fetchFinnhub={fetchFinnhub} />
             ) : view === 'insights' ? (
-                <InsightsDashboard clients={clients} insightThresholds={insightThresholds} insightLayout={insightLayout} setInsightLayout={setInsightLayout} onUpdateClient={handleUpdateClient} billingInfo={getBillingInfo()} defaultLayout={DEFAULT_INSIGHT_LAYOUT} />
+                <InsightsDashboard 
+                    clients={clients} 
+                    insightThresholds={insightThresholds} 
+                    insightLayout={insightLayout} 
+                    setInsightLayout={setInsightLayout} 
+                    isInsightResizingUnlocked={isInsightResizingUnlocked}
+                    setIsInsightResizingUnlocked={setIsInsightResizingUnlocked}
+                    onUpdateClient={handleUpdateClient} 
+                    billingInfo={getBillingInfo()} 
+                    defaultLayout={DEFAULT_INSIGHT_LAYOUT} 
+                />
             ) : (
                 <FirmOverview clients={clients} assetOverrides={assetOverrides} setAssetOverrides={setAssetOverrides} onUpdateClient={handleUpdateClient} />
             )}

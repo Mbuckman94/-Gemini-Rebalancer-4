@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff, Maximize2 } from 'lucide-react';
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
 
@@ -334,17 +334,13 @@ const BillingCountdown = ({ billingInfo }: { billingInfo: any }) => {
     );
 };
 
-const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset }: { isOpen: boolean, onClose: () => void, layout: any[], setLayout: (layout: any[]) => void, onReset: () => void }) => {
+const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset, isResizingUnlocked, setIsResizingUnlocked }: { isOpen: boolean, onClose: () => void, layout: any[], setLayout: (layout: any[]) => void, onReset: () => void, isResizingUnlocked: boolean, setIsResizingUnlocked: (val: boolean) => void }) => {
     if (!isOpen) return null;
 
     const [tempLayout, setTempLayout] = useState(Array.isArray(layout) ? layout : []);
 
     const handleToggleVisibility = (id: string) => {
         setTempLayout(tempLayout.map((item: any) => item.id === id ? { ...item, visible: !item.visible } : item));
-    };
-
-    const handleSizeChange = (id: string, span: number) => {
-        setTempLayout(tempLayout.map((item: any) => item.id === id ? { ...item, span } : item));
     };
 
     const handleDragStart = (e: React.DragEvent, id: string) => {
@@ -384,36 +380,39 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset }: {
                         <X className="h-5 w-5" />
                     </button>
                 </div>
-                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[60vh] space-y-3">
-                    {tempLayout.map((item: any) => (
-                        <div 
-                            key={item.id} 
-                            className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl cursor-move"
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, item.id)}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => handleDrop(e, item.id)}
-                        >
-                            <div className="flex items-center gap-3">
-                                <GripVertical className="h-5 w-5 text-zinc-600" />
-                                <button onClick={() => handleToggleVisibility(item.id)} className="text-zinc-400 hover:text-white">
-                                    {item.visible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                                </button>
-                                <span className="text-sm font-bold text-zinc-200">{item.label}</span>
-                            </div>
-                            <div className="flex bg-zinc-900 border border-zinc-700 rounded-lg p-1">
-                                {[1, 2, 3].map(span => (
-                                    <button
-                                        key={span}
-                                        onClick={() => handleSizeChange(item.id, span)}
-                                        className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md transition-all ${item.span === span ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                    >
-                                        {span === 1 ? 'S' : span === 2 ? 'M' : 'L'}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar max-h-[60vh] space-y-6">
+                    <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-white">Enable Manual Resizing</span>
+                            <button 
+                                onClick={() => setIsResizingUnlocked(!isResizingUnlocked)}
+                                className={`w-12 h-6 rounded-full transition-colors ${isResizingUnlocked ? 'bg-blue-600' : 'bg-zinc-700'}`}
+                            >
+                                <div className={`w-4 h-4 rounded-full bg-white transition-transform ${isResizingUnlocked ? 'translate-x-7' : 'translate-x-1'}`} />
+                            </button>
                         </div>
-                    ))}
+                        <p className="text-xs text-zinc-500">When enabled, drag the bottom-right corner of any module on the dashboard to change its size.</p>
+                    </div>
+                    <div className="space-y-3">
+                        {tempLayout.map((item: any) => (
+                            <div 
+                                key={item.id} 
+                                className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl cursor-move"
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, item.id)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleDrop(e, item.id)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <GripVertical className="h-5 w-5 text-zinc-600" />
+                                    <button onClick={() => handleToggleVisibility(item.id)} className="text-zinc-400 hover:text-white">
+                                        {item.visible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                                    </button>
+                                    <span className="text-sm font-bold text-zinc-200">{item.label}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
                 <div className="p-6 border-t border-zinc-800 flex justify-between gap-4">
                     <button onClick={() => { onReset(); onClose(); }} className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors">
@@ -428,7 +427,48 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset }: {
     );
 };
 
-const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsightLayout, onUpdateLayout, onUpdateClient, billingInfo, defaultLayout }: { clients: any[], insightThresholds?: any, insightLayout?: any, setInsightLayout?: any, onUpdateLayout?: (layout: any) => void, onUpdateClient: (updatedClient: any) => void, billingInfo?: any, defaultLayout: any[] }) => {
+const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsightLayout, isInsightResizingUnlocked, setIsInsightResizingUnlocked, onUpdateLayout, onUpdateClient, billingInfo, defaultLayout }: { clients: any[], insightThresholds?: any, insightLayout?: any, setInsightLayout?: any, isInsightResizingUnlocked?: boolean, setIsInsightResizingUnlocked?: (val: boolean) => void, onUpdateLayout?: (layout: any) => void, onUpdateClient: (updatedClient: any) => void, billingInfo?: any, defaultLayout: any[] }) => {
+  const [resizingModule, setResizingModule] = useState<{ id: string, startW: number, startH: number, startX: number, startY: number } | null>(null);
+
+  const handleResizeStart = (e: React.MouseEvent, id: string, w: number, h: number) => {
+      e.stopPropagation();
+      setResizingModule({ id, startW: w, startH: h, startX: e.clientX, startY: e.clientY });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingModule || !Array.isArray(insightLayout)) return;
+      const dx = e.clientX - resizingModule.startX;
+      const dy = e.clientY - resizingModule.startY;
+      
+      const dw = Math.round(dx / 150);
+      const dh = Math.round(dy / 150);
+      
+      const newW = Math.max(1, Math.min(3, resizingModule.startW + dw));
+      const newH = Math.max(1, Math.min(3, resizingModule.startH + dh));
+      
+      const newLayout = insightLayout.map((item: any) => item.id === resizingModule.id ? { ...item, w: newW, h: newH } : item);
+      if (onUpdateLayout) {
+          onUpdateLayout(newLayout);
+      } else if (setInsightLayout) {
+          setInsightLayout(newLayout);
+      }
+  };
+
+  const handleMouseUp = () => {
+      setResizingModule(null);
+  };
+
+  useEffect(() => {
+      if (resizingModule) {
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+      }
+      return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+      };
+  }, [resizingModule]);
+
   const safeThresholds = {
       excessCashThreshold: 10.0,
       fcashExposure: 10,
@@ -1031,44 +1071,40 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
 
   const renderWidget = (id: string) => {
       switch (id) {
-          case 'indices':
-              return (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                      {[
-                          { id: 'QQQ', name: 'Nasdaq', icon: Activity },
-                          { id: 'SPY', name: 'S&P 500', icon: TrendingUp },
-                          { id: 'DIA', name: 'Dow Jones', icon: Landmark }
-                      ].map((index) => {
-                          const data = indexQuotes[index.id];
-                          const isPositive = data.change >= 0;
-                          const Icon = index.icon;
+          case 'spy':
+          case 'qqq':
+          case 'dia':
+              const indexMap: any = { 'spy': { name: 'S&P 500', icon: TrendingUp }, 'qqq': { name: 'Nasdaq', icon: Activity }, 'dia': { name: 'Dow Jones', icon: Landmark } };
+              const index = indexMap[id];
+              const data = indexQuotes[id.toUpperCase()];
+              const isPositive = data?.change >= 0;
+              const Icon = index.icon;
 
-                          return (
-                              <div key={index.id} className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl">
-                                  <div className="flex items-center justify-between mb-4">
-                                      <div className="flex items-center gap-3">
-                                          <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                              <Icon className="h-4 w-4" />
-                                          </div>
-                                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
-                                      </div>
-                                      {loadingIndices && <Loader2 className="h-3 w-3 text-zinc-700 animate-spin" />}
-                                  </div>
-                                  
-                                  <div className="space-y-1">
-                                      <div className="text-2xl font-black text-white font-mono tracking-tighter">
-                                          {data.price > 0 ? formatCurrency(data.price) : '---'}
-                                      </div>
-                                      <div className={`text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                                          {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                                          {isPositive ? '+' : ''}{data.change.toFixed(2)} ({isPositive ? '+' : ''}{data.pct.toFixed(2)}%)
-                                      </div>
-                                  </div>
+              return (
+                  <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl h-full">
+                      <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                  <Icon className="h-4 w-4" />
                               </div>
-                          );
-                      })}
+                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
+                          </div>
+                          {loadingIndices && <Loader2 className="h-3 w-3 text-zinc-700 animate-spin" />}
+                      </div>
+                      
+                      <div className="space-y-1">
+                          <div className="text-2xl font-black text-white font-mono tracking-tighter">
+                              {data?.price > 0 ? formatCurrency(data.price) : '---'}
+                          </div>
+                          <div className={`text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                              {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                              {isPositive ? '+' : ''}{data?.change?.toFixed(2)} ({isPositive ? '+' : ''}{data?.pct?.toFixed(2)}%)
+                          </div>
+                      </div>
                   </div>
               );
+          case 'billing':
+              return <BillingCountdown billingInfo={billingInfo} />;
           case 'excessCash':
               return (
                   <Card 
@@ -1544,27 +1580,28 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        <div className="col-span-1 md:col-span-2 xl:col-span-1">
-            <BillingCountdown billingInfo={billingInfo} />
-        </div>
-        
         {Array.isArray(insightLayout) && insightLayout.filter((item: any) => item.visible).map((item: any) => {
-            const spanClass = {
-                1: 'xl:col-span-1',
-                2: 'xl:col-span-2',
-                3: 'xl:col-span-3'
-            }[item.span as 1 | 2 | 3] || 'xl:col-span-1';
+            const colSpan = { 1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3' }[item.w as 1 | 2 | 3] || 'col-span-1';
+            const rowSpan = { 1: 'row-span-1', 2: 'row-span-2', 3: 'row-span-3' }[item.h as 1 | 2 | 3] || 'row-span-1';
 
             return (
                 <div 
                     key={item.id} 
-                    className={`col-span-1 md:col-span-2 ${spanClass}`}
+                    className={`relative ${colSpan} ${rowSpan} ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''}`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, item.id)}
                 >
                     {renderWidget(item.id)}
+                    {isInsightResizingUnlocked && (
+                        <div 
+                            className="absolute bottom-0 right-0 p-1 cursor-se-resize bg-blue-500 text-white rounded-tl-lg"
+                            onMouseDown={(e) => handleResizeStart(e, item.id, item.w, item.h)}
+                        >
+                            <Maximize2 className="h-4 w-4" />
+                        </div>
+                    )}
                 </div>
             );
         })}
@@ -1634,6 +1671,8 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
           layout={insightLayout} 
           setLayout={setInsightLayout} 
           onReset={() => setInsightLayout(defaultLayout)} 
+          isResizingUnlocked={isInsightResizingUnlocked}
+          setIsResizingUnlocked={setIsInsightResizingUnlocked}
       />
 
       {activeInsight && (
