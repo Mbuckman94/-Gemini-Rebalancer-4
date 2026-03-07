@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff, Maximize2 } from 'lucide-react';
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
@@ -430,28 +430,42 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset, isR
 const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsightLayout, isInsightResizingUnlocked, setIsInsightResizingUnlocked, onUpdateLayout, onUpdateClient, billingInfo, defaultLayout }: { clients: any[], insightThresholds?: any, insightLayout?: any, setInsightLayout?: any, isInsightResizingUnlocked?: boolean, setIsInsightResizingUnlocked?: (val: boolean) => void, onUpdateLayout?: (layout: any) => void, onUpdateClient: (updatedClient: any) => void, billingInfo?: any, defaultLayout: any[] }) => {
   const [resizingModule, setResizingModule] = useState<{ id: string, startW: number, startH: number, startX: number, startY: number } | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const animationFrameRef = useRef<number>();
+
   const handleResizeStart = (e: React.MouseEvent, id: string, w: number, h: number) => {
       e.stopPropagation();
       setResizingModule({ id, startW: w, startH: h, startX: e.clientX, startY: e.clientY });
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingModule || !Array.isArray(insightLayout)) return;
-      const dx = e.clientX - resizingModule.startX;
-      const dy = e.clientY - resizingModule.startY;
+      if (!resizingModule || !Array.isArray(insightLayout) || !containerRef.current) return;
       
-      const dw = Math.round(dx / 150);
-      const dh = Math.round(dy / 150);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       
-      const newW = Math.max(1, Math.min(3, resizingModule.startW + dw));
-      const newH = Math.max(1, Math.min(3, resizingModule.startH + dh));
-      
-      const newLayout = insightLayout.map((item: any) => item.id === resizingModule.id ? { ...item, w: newW, h: newH } : item);
-      if (onUpdateLayout) {
-          onUpdateLayout(newLayout);
-      } else if (setInsightLayout) {
-          setInsightLayout(newLayout);
-      }
+      animationFrameRef.current = requestAnimationFrame(() => {
+          const dx = e.clientX - resizingModule.startX;
+          const dy = e.clientY - resizingModule.startY;
+          
+          const containerWidth = containerRef.current?.offsetWidth || 1200;
+          const colWidth = containerWidth / 24;
+          const heightStep = 80;
+          
+          const dw = Math.round(dx / colWidth);
+          const dh = Math.round(dy / heightStep);
+          
+          const newW = Math.max(1, Math.min(24, resizingModule.startW + dw));
+          const newH = Math.max(1, Math.min(24, resizingModule.startH + dh));
+          
+          if (newW !== resizingModule.startW || newH !== resizingModule.startH) {
+              const newLayout = insightLayout.map((item: any) => item.id === resizingModule.id ? { ...item, w: newW, h: newH } : item);
+              if (onUpdateLayout) {
+                  onUpdateLayout(newLayout);
+              } else if (setInsightLayout) {
+                  setInsightLayout(newLayout);
+              }
+          }
+      });
   };
 
   const handleMouseUp = () => {
@@ -1069,7 +1083,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
       return () => clearInterval(interval);
   }, []);
 
-  const renderWidget = (id: string) => {
+  const renderWidget = (id: string, w: number) => {
       switch (id) {
           case 'spy':
           case 'qqq':
@@ -1079,24 +1093,25 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
               const data = indexQuotes[id.toUpperCase()];
               const isPositive = data?.change >= 0;
               const Icon = index.icon;
+              const isSmall = w <= 2;
 
               return (
-                  <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl h-full">
-                      <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                  <Icon className="h-4 w-4" />
+                  <div className="bg-zinc-900/40 backdrop-blur-xl border border-zinc-800 rounded-2xl p-4 md:p-6 flex flex-col justify-between group hover:border-zinc-700 transition-all duration-300 shadow-xl h-full">
+                      <div className="flex items-center justify-between mb-2 md:mb-4">
+                          <div className="flex items-center gap-2 md:gap-3">
+                              <div className={`p-1.5 md:p-2 rounded-lg ${isPositive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                  <Icon className="h-3 w-3 md:h-4 md:w-4" />
                               </div>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
+                              <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">{index.name}</span>
                           </div>
                           {loadingIndices && <Loader2 className="h-3 w-3 text-zinc-700 animate-spin" />}
                       </div>
                       
-                      <div className="space-y-1">
-                          <div className="text-2xl font-black text-white font-mono tracking-tighter">
+                      <div className="space-y-0.5 md:space-y-1">
+                          <div className={`${isSmall ? 'text-lg' : 'text-xl md:text-2xl'} font-black text-white font-mono tracking-tighter`}>
                               {data?.price > 0 ? formatCurrency(data.price) : '---'}
                           </div>
-                          <div className={`text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                          <div className={`text-[10px] md:text-xs font-bold flex items-center gap-1 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
                               {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                               {isPositive ? '+' : ''}{data?.change?.toFixed(2)} ({isPositive ? '+' : ''}{data?.pct?.toFixed(2)}%)
                           </div>
@@ -1579,21 +1594,21 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-24 gap-6" ref={containerRef}>
         {Array.isArray(insightLayout) && insightLayout.filter((item: any) => item.visible).map((item: any) => {
-            const colSpan = { 1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3' }[item.w as 1 | 2 | 3] || 'col-span-1';
-            const rowSpan = { 1: 'row-span-1', 2: 'row-span-2', 3: 'row-span-3' }[item.h as 1 | 2 | 3] || 'row-span-1';
+            const colSpan = `col-span-${Math.min(24, Math.max(1, item.w))}`;
+            const rowSpan = `row-span-${Math.min(24, Math.max(1, item.h))}`;
 
             return (
                 <div 
                     key={item.id} 
-                    className={`relative ${colSpan} ${rowSpan} ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''}`}
+                    className={`relative ${colSpan} ${rowSpan} ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''} transition-[grid-column-end,grid-row-end] duration-150 ease-out`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, item.id)}
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, item.id)}
                 >
-                    {renderWidget(item.id)}
+                    {renderWidget(item.id, item.w)}
                     {isInsightResizingUnlocked && (
                         <div 
                             className="absolute bottom-0 right-0 p-1 cursor-se-resize bg-blue-500 text-white rounded-tl-lg"

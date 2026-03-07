@@ -101,18 +101,18 @@ const QUOTE_CACHE_TTL = 60000; // 60 seconds
 let globalFirmOverviewCache: any = { assets: [], lastUpdated: 0, clientHash: '' };
 
 const DEFAULT_INSIGHT_LAYOUT = [
-  { id: 'billing', label: 'Days until Billing', visible: true, w: 1, h: 1 },
-  { id: 'spy', label: 'S&P 500', visible: true, w: 1, h: 1 },
-  { id: 'qqq', label: 'Nasdaq', visible: true, w: 1, h: 1 },
-  { id: 'dia', label: 'Dow Jones', visible: true, w: 1, h: 1 },
-  { id: 'excessCash', label: 'Excess Cash', visible: true, w: 1, h: 1 },
-  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, w: 1, h: 1 },
-  { id: 'fcash', label: 'FCASH Holdings', visible: true, w: 1, h: 1 },
-  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, w: 1, h: 1 },
-  { id: 'concentration', label: 'Concentration Risk', visible: true, w: 1, h: 1 },
-  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, w: 1, h: 1 },
-  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, w: 1, h: 1 },
-  { id: 'leaderboard', label: 'Performance Leaders', visible: true, w: 3, h: 2 }
+  { id: 'billing', label: 'Days until Billing', visible: true, w: 8, h: 4 },
+  { id: 'spy', label: 'S&P 500', visible: true, w: 8, h: 4 },
+  { id: 'qqq', label: 'Nasdaq', visible: true, w: 8, h: 4 },
+  { id: 'dia', label: 'Dow Jones', visible: true, w: 8, h: 4 },
+  { id: 'excessCash', label: 'Excess Cash', visible: true, w: 8, h: 4 },
+  { id: 'insufficientCash', label: 'Insufficient Cash', visible: true, w: 8, h: 4 },
+  { id: 'fcash', label: 'FCASH Holdings', visible: true, w: 8, h: 4 },
+  { id: 'taxLoss', label: 'Tax Loss Harvesting', visible: true, w: 8, h: 4 },
+  { id: 'concentration', label: 'Concentration Risk', visible: true, w: 8, h: 4 },
+  { id: 'stalePortfolios', label: 'Stale Portfolios', visible: true, w: 8, h: 4 },
+  { id: 'bondMaturities', label: 'Bond Maturities', visible: true, w: 8, h: 4 },
+  { id: 'leaderboard', label: 'Performance Leaders', visible: true, w: 24, h: 8 }
 ];
 
 // --- DEFAULT LAYOUT ---
