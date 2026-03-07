@@ -1511,16 +1511,17 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
           className="layout"
           layouts={{ lg: Array.isArray(insightLayout) ? insightLayout.filter((l: any) => l.visible) : [] }}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 24, md: 12, sm: 6, xs: 4, xxs: 2 }}
-          rowHeight={15}
+          cols={{ lg: 48, md: 24, sm: 12, xs: 8, xxs: 4 }}
+          rowHeight={10}
           onLayoutChange={handleLayoutChange}
           isDraggable={isInsightResizingUnlocked}
           isResizable={isInsightResizingUnlocked}
+          resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
           margin={[24, 24]}
           useCSSTransforms={true}
       >
           {Array.isArray(insightLayout) ? insightLayout.filter((l: any) => l.visible).map((item: any) => (
-              <div key={item.i} className={isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50 rounded-2xl cursor-move' : ''}>
+              <div key={item.i} className={`h-full overflow-hidden ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50 rounded-2xl cursor-move' : ''}`}>
                   {renderWidget(item.i, item.w)}
               </div>
           )) : null}

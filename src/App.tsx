@@ -101,18 +101,18 @@ const QUOTE_CACHE_TTL = 60000; // 60 seconds
 let globalFirmOverviewCache: any = { assets: [], lastUpdated: 0, clientHash: '' };
 
 const DEFAULT_INSIGHT_LAYOUT = [
-  { i: 'spy', label: 'S&P 500', x: 0, y: 0, w: 6, h: 10, minW: 4, minH: 8, visible: true },
-  { i: 'qqq', label: 'Nasdaq', x: 6, y: 0, w: 6, h: 10, minW: 4, minH: 8, visible: true },
-  { i: 'dia', label: 'Dow Jones', x: 12, y: 0, w: 6, h: 10, minW: 4, minH: 8, visible: true },
-  { i: 'billing', label: 'Days until Billing', x: 18, y: 0, w: 6, h: 10, minW: 4, minH: 8, visible: true },
-  { i: 'excessCash', label: 'Excess Cash', x: 0, y: 10, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'insufficientCash', label: 'Insufficient Cash', x: 8, y: 10, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'fcash', label: 'FCASH Holdings', x: 16, y: 10, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'taxLoss', label: 'Tax Loss Harvesting', x: 0, y: 32, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'concentration', label: 'Concentration Risk', x: 8, y: 32, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'stalePortfolios', label: 'Stale Portfolios', x: 16, y: 32, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'bondMaturities', label: 'Bond Maturities', x: 0, y: 54, w: 8, h: 22, minW: 6, minH: 15, visible: true },
-  { i: 'leaderboard', label: 'Performance Leaders', x: 0, y: 76, w: 24, h: 36, minW: 12, minH: 20, visible: true }
+  { i: 'spy', label: 'S&P 500', x: 0, y: 0, w: 12, h: 10, minW: 3, minH: 4, visible: true },
+  { i: 'qqq', label: 'Nasdaq', x: 12, y: 0, w: 12, h: 10, minW: 3, minH: 4, visible: true },
+  { i: 'dia', label: 'Dow Jones', x: 24, y: 0, w: 12, h: 10, minW: 3, minH: 4, visible: true },
+  { i: 'billing', label: 'Days until Billing', x: 36, y: 0, w: 12, h: 10, minW: 3, minH: 4, visible: true },
+  { i: 'excessCash', label: 'Excess Cash', x: 0, y: 10, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'insufficientCash', label: 'Insufficient Cash', x: 16, y: 10, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'fcash', label: 'FCASH Holdings', x: 32, y: 10, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'taxLoss', label: 'Tax Loss Harvesting', x: 0, y: 32, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'concentration', label: 'Concentration Risk', x: 16, y: 32, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'stalePortfolios', label: 'Stale Portfolios', x: 32, y: 32, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'bondMaturities', label: 'Bond Maturities', x: 0, y: 54, w: 16, h: 22, minW: 4, minH: 6, visible: true },
+  { i: 'leaderboard', label: 'Performance Leaders', x: 0, y: 76, w: 48, h: 36, minW: 8, minH: 10, visible: true }
 ];
 
 // --- DEFAULT LAYOUT ---
