@@ -1,5 +1,10 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { AlertTriangle, TrendingDown, PieChart, DollarSign, ArrowRight, Lightbulb, Wallet, TrendingUp, Clock, Calendar, Activity, ArrowUp, ArrowDown, Layers, RefreshCw, Loader2, Landmark, Banknote, X, ArrowUpRight, Sparkles, Settings, GripVertical, Eye, EyeOff, Maximize2, Copy } from 'lucide-react';
+import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const CASH_TICKERS = ["FDRXX", "FCASH", "SPAXX", "CASH", "MMDA", "USD", "CORE", "FZFXX", "SWVXX"];
 
@@ -340,27 +345,7 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset, isR
     const [tempLayout, setTempLayout] = useState(Array.isArray(layout) ? layout : []);
 
     const handleToggleVisibility = (id: string) => {
-        setTempLayout(tempLayout.map((item: any) => item.id === id ? { ...item, visible: !item.visible } : item));
-    };
-
-    const handleDragStart = (e: React.DragEvent, id: string) => {
-        e.dataTransfer.setData('text/plain', id);
-    };
-
-    const handleDrop = (e: React.DragEvent, targetId: string) => {
-        e.preventDefault();
-        const draggedId = e.dataTransfer.getData('text/plain');
-        if (draggedId === targetId) return;
-
-        const newLayout = [...tempLayout];
-        const draggedIndex = newLayout.findIndex(item => item.id === draggedId);
-        const targetIndex = newLayout.findIndex(item => item.id === targetId);
-
-        if (draggedIndex === -1 || targetIndex === -1) return;
-
-        const [draggedItem] = newLayout.splice(draggedIndex, 1);
-        newLayout.splice(targetIndex, 0, draggedItem);
-        setTempLayout(newLayout);
+        setTempLayout(tempLayout.map((item: any) => item.i === id ? { ...item, visible: !item.visible } : item));
     };
 
     return (
@@ -396,19 +381,14 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset, isR
                     <div className="space-y-3">
                         {tempLayout.map((item: any) => (
                             <div 
-                                key={item.id} 
-                                className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl cursor-move"
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, item.id)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => handleDrop(e, item.id)}
+                                key={item.i} 
+                                className="flex items-center justify-between p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl"
                             >
                                 <div className="flex items-center gap-3">
-                                    <GripVertical className="h-5 w-5 text-zinc-600" />
-                                    <button onClick={() => handleToggleVisibility(item.id)} className="text-zinc-400 hover:text-white">
+                                    <button onClick={() => handleToggleVisibility(item.i)} className="text-zinc-400 hover:text-white">
                                         {item.visible ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                                     </button>
-                                    <span className="text-sm font-bold text-zinc-200">{item.label}</span>
+                                    <span className="text-sm font-bold text-zinc-200">{item.label || item.i}</span>
                                 </div>
                             </div>
                         ))}
@@ -428,59 +408,14 @@ const InsightSettingsModal = ({ isOpen, onClose, layout, setLayout, onReset, isR
 };
 
 const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsightLayout, isInsightResizingUnlocked, setIsInsightResizingUnlocked, onUpdateLayout, onUpdateClient, billingInfo, defaultLayout }: { clients: any[], insightThresholds?: any, insightLayout?: any, setInsightLayout?: any, isInsightResizingUnlocked?: boolean, setIsInsightResizingUnlocked?: (val: boolean) => void, onUpdateLayout?: (layout: any) => void, onUpdateClient: (updatedClient: any) => void, billingInfo?: any, defaultLayout: any[] }) => {
-  const [resizingModule, setResizingModule] = useState<{ id: string, startW: number, startH: number, startX: number, startY: number } | null>(null);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const animationFrameRef = useRef<number>();
-
-  const handleResizeStart = (e: React.MouseEvent, id: string, w: number, h: number) => {
-      e.stopPropagation();
-      e.preventDefault();
-      setResizingModule({ id, startW: w, startH: h, startX: e.clientX, startY: e.clientY });
+  const handleLayoutChange = (newLayout: any[]) => {
+     if (!Array.isArray(insightLayout)) return;
+     const updatedLayout = insightLayout.map((item: any) => {
+       const changed = newLayout.find(l => l.i === item.i);
+       return changed ? { ...item, ...changed } : item;
+     });
+     setInsightLayout ? setInsightLayout(updatedLayout) : onUpdateLayout?.(updatedLayout);
   };
-
-  const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingModule || !Array.isArray(insightLayout) || !containerRef.current) return;
-      
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      
-      animationFrameRef.current = requestAnimationFrame(() => {
-          const dx = e.clientX - resizingModule.startX;
-          const dy = e.clientY - resizingModule.startY;
-          
-          const colWidth = containerRef.current!.offsetWidth / 24;
-          
-          const dw = Math.round(dx / colWidth);
-          const dh = Math.round(dy / 15);
-          
-          const newW = Math.max(2, Math.min(24, resizingModule.startW + dw));
-          const newH = Math.max(6, resizingModule.startH + dh);
-          
-          if (newW !== resizingModule.startW || newH !== resizingModule.startH) {
-              const newLayout = insightLayout.map((item: any) => item.id === resizingModule.id ? { ...item, w: newW, h: newH } : item);
-              if (onUpdateLayout) {
-                  onUpdateLayout(newLayout);
-              } else if (setInsightLayout) {
-                  setInsightLayout(newLayout);
-              }
-          }
-      });
-  };
-
-  const handleMouseUp = () => {
-      setResizingModule(null);
-  };
-
-  useEffect(() => {
-      if (resizingModule) {
-          window.addEventListener('mousemove', handleMouseMove);
-          window.addEventListener('mouseup', handleMouseUp);
-      }
-      return () => {
-          window.removeEventListener('mousemove', handleMouseMove);
-          window.removeEventListener('mouseup', handleMouseUp);
-      };
-  }, [resizingModule]);
 
   const safeThresholds = {
       excessCashThreshold: 10.0,
@@ -517,40 +452,7 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
   const [rawMarketData, setRawMarketData] = useState<any>({});
   const [refreshingAssets, setRefreshingAssets] = useState(new Set());
   const [showFcashModal, setShowFcashModal] = useState(false);
-
-  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
-
-  const handleDragStart = (e: React.DragEvent, id: string) => {
-      setDraggedId(id);
-      e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetId: string) => {
-      e.preventDefault();
-      if (!draggedId || draggedId === targetId || !Array.isArray(insightLayout)) return;
-
-      const newLayout = [...insightLayout];
-      const draggedIndex = newLayout.findIndex(item => item.id === draggedId);
-      const targetIndex = newLayout.findIndex(item => item.id === targetId);
-
-      if (draggedIndex === -1 || targetIndex === -1) return;
-
-      const [draggedItem] = newLayout.splice(draggedIndex, 1);
-      newLayout.splice(targetIndex, 0, draggedItem);
-
-      if (onUpdateLayout) {
-          onUpdateLayout(newLayout);
-      } else if (setInsightLayout) {
-          setInsightLayout(newLayout);
-      }
-      setDraggedId(null);
-  };
 
   const handleRefreshAsset = async (symbol: string) => {
       setRefreshingAssets(prev => new Set(prev).add(symbol));
@@ -1588,36 +1490,41 @@ const InsightsDashboard = ({ clients, insightThresholds, insightLayout, setInsig
             <h1 className="text-4xl font-black text-white tracking-tighter">Insights</h1>
             <p className="text-zinc-500 text-lg mt-2 font-medium">Automated risk detection and portfolio opportunities.</p>
         </div>
-        <button onClick={() => setIsLayoutModalOpen(true)} className="bg-zinc-900 hover:bg-zinc-800 text-white p-3 rounded-full transition-colors border border-zinc-800">
-            <Settings className="h-5 w-5" />
-        </button>
+        <div className="flex gap-2">
+            <button 
+                onClick={() => {
+                    navigator.clipboard.writeText(JSON.stringify(insightLayout));
+                    alert("Layout configuration copied to clipboard! Please paste this to the developer.");
+                }} 
+                className="bg-zinc-900 hover:bg-zinc-800 text-white p-3 rounded-full transition-colors border border-zinc-800"
+                title="Copy Layout Config"
+            >
+                <Copy className="h-5 w-5" />
+            </button>
+            <button onClick={() => setIsLayoutModalOpen(true)} className="bg-zinc-900 hover:bg-zinc-800 text-white p-3 rounded-full transition-colors border border-zinc-800">
+                <Settings className="h-5 w-5" />
+            </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-24 gap-6" ref={containerRef} style={{ gridAutoRows: '15px' }}>
-        {Array.isArray(insightLayout) && insightLayout.filter((item: any) => item.visible).map((item: any) => {
-            return (
-                <div 
-                    key={item.id} 
-                    className={`relative ${isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50' : ''} transition-[grid-column-end,grid-row-end] duration-150 ease-in-out`}
-                    style={{ gridColumn: `span ${item.w} / span ${item.w}`, gridRow: `span ${item.h} / span ${item.h}` }}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, item.id)}
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, item.id)}
-                >
-                    {renderWidget(item.id, item.w)}
-                    {isInsightResizingUnlocked && (
-                        <div 
-                            className="absolute bottom-0 right-0 p-1 cursor-se-resize bg-blue-500 text-white rounded-tl-lg z-20"
-                            onMouseDown={(e) => handleResizeStart(e, item.id, item.w, item.h)}
-                        >
-                            <Maximize2 className="h-4 w-4" />
-                        </div>
-                    )}
-                </div>
-            );
-        })}
-      </div>
+      <ResponsiveGridLayout
+          className="layout"
+          layouts={{ lg: Array.isArray(insightLayout) ? insightLayout.filter((l: any) => l.visible) : [] }}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 24, md: 12, sm: 6, xs: 4, xxs: 2 }}
+          rowHeight={15}
+          onLayoutChange={handleLayoutChange}
+          isDraggable={isInsightResizingUnlocked}
+          isResizable={isInsightResizingUnlocked}
+          margin={[24, 24]}
+          useCSSTransforms={true}
+      >
+          {Array.isArray(insightLayout) ? insightLayout.filter((l: any) => l.visible).map((item: any) => (
+              <div key={item.i} className={isInsightResizingUnlocked ? 'border-2 border-dashed border-blue-500/50 rounded-2xl cursor-move' : ''}>
+                  {renderWidget(item.i, item.w)}
+              </div>
+          )) : null}
+      </ResponsiveGridLayout>
 
       {/* FCASH MODAL */}
       {showFcashModal && (
